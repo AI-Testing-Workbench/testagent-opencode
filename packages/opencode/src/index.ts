@@ -49,7 +49,7 @@ process.on("uncaughtException", (e) => {
 
 let cli = yargs(hideBin(process.argv))
   .parserConfiguration({ "populate--": true })
-  .scriptName("opencode")
+  .scriptName("testagent") // testagent_change
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")
@@ -79,7 +79,7 @@ let cli = yargs(hideBin(process.argv))
     process.env.OPENCODE = "1"
     process.env.OPENCODE_PID = String(process.pid)
 
-    Log.Default.info("opencode", {
+    Log.Default.info("testagent", { // testagent_change
       version: Installation.VERSION,
       args: process.argv.slice(2),
     })

@@ -13,7 +13,7 @@ export function Logo() {
   const { theme } = useTheme()
 
   const renderLine = (line: string, fg: RGBA, bold: boolean): JSX.Element[] => {
-    const shadow = tint(theme.background, fg, 0.25)
+    const shadow = tint(theme.background, fg, 0.8)
     const attrs = bold ? TextAttributes.BOLD : undefined
     const elements: JSX.Element[] = []
     let i = 0
@@ -75,8 +75,8 @@ export function Logo() {
       <For each={logo.left}>
         {(line, index) => (
           <box flexDirection="row" gap={1}>
-            <box flexDirection="row">{renderLine(line, theme.textMuted, false)}</box>
-            <box flexDirection="row">{renderLine(logo.right[index()], theme.text, true)}</box>
+            <box flexDirection="row">{renderLine(line, theme.warning, true)}</box>
+            <box flexDirection="row">{renderLine(logo.right[index()] ?? "", theme.warning, true)}</box>
           </box>
         )}
       </For>

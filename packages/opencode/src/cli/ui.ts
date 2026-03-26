@@ -41,6 +41,13 @@ export namespace UI {
   }
 
   export function logo(pad?: string) {
+    // testagent_change start - plain text logo when right is empty
+    if (glyphs.right.length === 0) {
+      const cyan = "\x1b[96m"
+      const reset = "\x1b[0m"
+      return glyphs.left.map((row) => (pad ?? "") + cyan + row + reset).join(EOL)
+    }
+    // testagent_change end
     const result: string[] = []
     const reset = "\x1b[0m"
     const left = {
