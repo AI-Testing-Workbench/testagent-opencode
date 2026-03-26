@@ -126,3 +126,50 @@ const table = sqliteTable("session", {
 ## Type Checking
 
 - Always run `bun typecheck` from package directories (e.g., `packages/opencode`), never `tsc` directly.
+
+
+## Commit Conventions
+
+[Conventional Commits](https://www.conventionalcommits.org/) with scopes matching packages: `vscode`, `cli`, `agent-manager`, `sdk`, `ui`, `i18n`, `kilo-docs`, `gateway`, `telemetry`, `desktop`. Omit scope when spanning multiple packages.
+
+## Fork Merge Process
+
+This is a fork of [opencode](https://github.com/anomalyco/opencode).
+
+### Minimizing Merge Conflicts
+
+We regularly merge upstream changes from opencode. To minimize merge conflicts and keep the sync process smooth:
+
+
+1. **Minimize changes to shared files** - When you must modify files that exist in upstream opencode, keep changes as small and isolated as possible.
+
+2. **Use `testagent_change` markers** - When modifying shared code, mark your changes with `testagent_change` comments so they can be easily identified during merges.
+
+3. **Avoid restructuring upstream code** - Don't refactor or reorganize code that comes from opencode unless absolutely necessary.
+
+The goal is to keep our diff from upstream as small as possible, making regular merges straightforward and reducing the risk of conflicts.
+
+### TestAgent Change Markers
+
+To minimize merge conflicts when syncing with upstream, mark Test Agent-specific changes in change code with `testagent_change` comments.
+
+**Single line:**
+
+```typescript
+const value = 42 // testagent_change
+```
+
+**Multi-line:**
+
+```typescript
+// testagent_change start
+const foo = 1
+const bar = 2
+// testagent_change end
+```
+
+**New files:**
+
+```typescript
+// testagent_change - new file
+```
