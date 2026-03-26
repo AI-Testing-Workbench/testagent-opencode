@@ -527,9 +527,12 @@ export namespace Server {
           return c.json(await Format.status())
         },
       )
+      // testagent_change start - serve embedded web UI assets offline
       .all("/*", async (c) => {
-        return c.text("Not found", 404) // testagent_change - removed app.opencode.ai proxy
+        const { serveAsset, serveIndex } = await import("./web")
+        return serveAsset(c.req.path) ?? serveIndex() ?? c.text("Not found", 404)
       })
+      // testagent_change end
   }
 
   export async function openapi() {
