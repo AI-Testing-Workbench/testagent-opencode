@@ -7,7 +7,6 @@ import { bootstrap } from "../bootstrap"
 import { Database } from "../../storage/db"
 import { SessionTable, MessageTable, PartTable } from "../../session/session.sql"
 import { Instance } from "../../project/instance"
-import { ShareNext } from "../../share/share-next"
 import { EOL } from "os"
 import { Filesystem } from "../../util/filesystem"
 
@@ -98,46 +97,11 @@ export const ImportCommand = cmd({
       const isUrl = args.file.startsWith("http://") || args.file.startsWith("https://")
 
       if (isUrl) {
-        const slug = parseShareUrl(args.file)
-        if (!slug) {
-          const baseUrl = await ShareNext.url()
-          process.stdout.write(`Invalid URL format. Expected: ${baseUrl}/share/<slug>`)
-          process.stdout.write(EOL)
-          return
-        }
-
-        const parsed = new URL(args.file)
-        const baseUrl = parsed.origin
-        const req = await ShareNext.request()
-        const headers = shouldAttachShareAuthHeaders(args.file, req.baseUrl) ? req.headers : {}
-
-        const dataPath = req.api.data(slug)
-        let response = await fetch(`${baseUrl}${dataPath}`, {
-          headers,
-        })
-
-        if (!response.ok && dataPath !== `/api/share/${slug}/data`) {
-          response = await fetch(`${baseUrl}/api/share/${slug}/data`, {
-            headers,
-          })
-        }
-
-        if (!response.ok) {
-          process.stdout.write(`Failed to fetch share data: ${response.statusText}`)
-          process.stdout.write(EOL)
-          return
-        }
-
-        const shareData: ShareData[] = await response.json()
-        const transformed = transformShareData(shareData)
-
-        if (!transformed) {
-          process.stdout.write(`Share not found or empty: ${slug}`)
-          process.stdout.write(EOL)
-          return
-        }
-
-        exportData = transformed
+        // testagent_change start - URL import disabled (share service removed)
+        process.stdout.write(`URL import is not available. Share service has been removed.`)
+        process.stdout.write(EOL)
+        return
+        // testagent_change end
       } else {
         exportData = await Filesystem.readJson<NonNullable<typeof exportData>>(args.file).catch(() => undefined)
         if (!exportData) {
