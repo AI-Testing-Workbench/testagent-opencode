@@ -171,9 +171,13 @@ const targets = targetArg
 
 // testagent_change start - build app for offline web UI embedding
 const appDir = path.resolve(dir, "../app")
-console.log("Building app for embedding...")
-await $`bun run build`.cwd(appDir)
 const appDist = path.join(appDir, "dist")
+console.log("Building app for embedding...")
+if (!fs.existsSync(appDir)) {
+  await $`bun run build`.cwd(appDir)
+} else {
+  console.log("App directory exists, skipping build. Delete the app/dist directory to force a rebuild.")
+}
 const appFiles = await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: appDist, onlyFiles: true }))
 // appFiles are relative paths like "index.html", "assets/index-abc.js"
 // We pass them to web.ts via define so it can map blob.name -> URL path
