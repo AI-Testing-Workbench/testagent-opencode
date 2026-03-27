@@ -16,7 +16,8 @@
     "random": "echo 'Random script'",
     "hello": "echo 'Hello World!'",
     "test": "echo 'do not run tests from root' && exit 1",
-    "bun:windows": "bun install && bun packages/opencode/script/build.ts --target=win32-x64-baseline --skip-models"
+    "bun:windows": "bun install && bun packages/opencode/script/build.ts --target=win32-x64-baseline --skip-models",
+    "bun:debug":"bun --inspect-brk run --cwd packages/opencode --conditions=browser src/index.ts web"
   },
   "workspaces": {
     "packages": [
