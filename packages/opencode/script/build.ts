@@ -173,10 +173,10 @@ const targets = targetArg
 const appDir = path.resolve(dir, "../app")
 const appDist = path.join(appDir, "dist")
 console.log("Building app for embedding...")
-if (!fs.existsSync(appDir)) {
-  await $`bun run build`.cwd(appDir)
+if (fs.existsSync(appDist)) {
+  console.log("App dist exists, skipping build. Delete the app/dist directory to force a rebuild.")
 } else {
-  console.log("App directory exists, skipping build. Delete the app/dist directory to force a rebuild.")
+  await $`bun run build`.cwd(appDir)
 }
 const appFiles = await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: appDist, onlyFiles: true }))
 // appFiles are relative paths like "index.html", "assets/index-abc.js"
