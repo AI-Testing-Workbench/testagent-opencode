@@ -200,28 +200,7 @@ const targets = targetArg
       ? allTargets.filter((item) => item.os === "win32") // testagent_change
       : allTargets
 
-// testagent_change start - build app for offline web UI embedding
-const appDir = path.resolve(dir, "../app")
-const appDist = path.join(appDir, "dist")
-console.log("Building app for embedding...")
-if (fs.existsSync(appDist)) {
-  console.log("App dist exists, skipping build. Delete the app/dist directory to force a rebuild.")
-} else {
-  await $`bun run build`.cwd(appDir)
-}
-const appFiles = await Array.fromAsync(new Bun.Glob("**/*").scan({ cwd: appDist, onlyFiles: true }))
-// appFiles are relative paths like "index.html", "assets/index-abc.js"
-// We pass them to web.ts via define so it can map blob.name -> URL path
-const appManifest = Object.fromEntries(appFiles.map((f) => [path.basename(f), "/" + f]))
-console.log(`Found ${appFiles.length} app assets to embed`)
 
-// Generate a shim that imports all app assets as embedded files.
-// Using `with { type: "file" }` tells Bun to embed the raw bytes without
-// trying to parse/bundle the content (critical for pre-built CSS/JS/fonts).
-const shimLines = appFiles.map((f) => `import ${JSON.stringify(path.join(appDist, f))} with { type: "file" }`)
-const shimPath = path.join(dir, "src/server/web-embed-shim.ts")
-await Bun.write(shimPath, shimLines.join("\n") + "\n")
-// testagent_change end
 
 await $`rm -rf dist`
 
@@ -278,7 +257,6 @@ for (const item of targets) {
       OPENCODE_WORKER_PATH: workerPath,
       OPENCODE_CHANNEL: `'${Script.channel}'`,
       OPENCODE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
-      APP_MANIFEST: JSON.stringify(appManifest), // testagent_change - filename -> URL path map for web.ts
     },
   })
 
