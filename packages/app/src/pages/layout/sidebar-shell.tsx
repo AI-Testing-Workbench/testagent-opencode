@@ -99,7 +99,8 @@ export const SidebarContent = (props: {
               aria-label={props.settingsLabel()}
             />
           </TooltipKeybind>
-          <Tooltip placement={placement()} value={props.helpLabel()}>
+          {/* testagent_change */}
+          {/* <Tooltip placement={placement()} value={props.helpLabel()}>
             <IconButton
               icon="help"
               variant="ghost"
@@ -107,7 +108,7 @@ export const SidebarContent = (props: {
               onClick={props.onOpenHelp}
               aria-label={props.helpLabel()}
             />
-          </Tooltip>
+          </Tooltip> */}
         </div>
       </div>
 

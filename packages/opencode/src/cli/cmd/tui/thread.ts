@@ -191,7 +191,7 @@ export const TuiThreadCommand = cmd({
             events: undefined,
           }
         : {
-            url: "http://opencode.internal",
+            url: "http://testagent.internal", // testagent_change
             fetch: createWorkerFetch(client),
             events: createEventSource(client),
           }

@@ -274,6 +274,14 @@ for (const item of targets) {
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`
+  // testagent_change start - create lightweight opencode alias
+  if (item.os === "win32") {
+    await Bun.write(`dist/${name}/bin/opencode.cmd`, `@"%~dp0testagent.exe" %*\r\n`)
+  } else {
+    await Bun.write(`dist/${name}/bin/opencode`, `#!/bin/sh\nexec "$(dirname "$0")/testagent" "$@"\n`)
+    await $`chmod +x dist/${name}/bin/opencode`
+  }
+  // testagent_change end
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {

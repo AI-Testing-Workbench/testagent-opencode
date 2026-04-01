@@ -1,6 +1,6 @@
 {
-  "name": "OpenCode",
-  "short_name": "OpenCode",
+  "name": "TestAgent",
+  "short_name": "TestAgent",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

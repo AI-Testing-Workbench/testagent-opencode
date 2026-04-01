@@ -669,7 +669,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
       title: "Open docs",
       value: "docs.open",
       onSelect: () => {
-        open("https://opencode.ai/docs").catch(() => {})
+        // open("https://opencode.ai/docs").catch(() => {})  //testagent_change
         dialog.clear()
       },
       category: "System",
@@ -851,7 +851,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
     await DialogAlert.show(
       dialog,
       "Update Complete",
-      `Successfully updated to OpenCode v${result.data.version}. Please restart the application.`,
+      `Successfully updated to TestAgent v${result.data.version}. Please restart the application.`,
     )
 
     exit()
