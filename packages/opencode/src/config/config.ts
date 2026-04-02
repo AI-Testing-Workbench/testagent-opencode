@@ -5,7 +5,7 @@ import os from "os"
 import z from "zod"
 import { ModelsDev } from "../provider/models"
 import { mergeDeep, pipe, unique } from "remeda"
-import { Global } from "../global"
+import { Global, opencodeConfig } from "../global" // testagent_change
 import fsNode from "fs/promises"
 import { NamedError } from "@opencode-ai/util/error"
 import { Flag } from "../flag/flag"
@@ -1264,6 +1264,11 @@ export namespace Config {
         const loadGlobal = Effect.fnUntraced(function* () {
           let result: Info = pipe(
             {},
+            // testagent_change start - load opencode legacy global config first (lower priority, user-created)
+            mergeDeep(yield* loadFile(path.join(opencodeConfig, "config.json"))),
+            mergeDeep(yield* loadFile(path.join(opencodeConfig, "opencode.json"))),
+            mergeDeep(yield* loadFile(path.join(opencodeConfig, "opencode.jsonc"))),
+            // testagent_change end
             mergeDeep(yield* loadFile(path.join(Global.Path.config, "config.json"))),
             mergeDeep(yield* loadFile(path.join(Global.Path.config, "opencode.json"))),
             mergeDeep(yield* loadFile(path.join(Global.Path.config, "opencode.jsonc"))),

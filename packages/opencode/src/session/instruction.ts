@@ -1,6 +1,6 @@
 import path from "path"
 import os from "os"
-import { Global } from "../global"
+import { Global, opencodeConfig } from "../global" // testagent_change
 import { Filesystem } from "../util/filesystem"
 import { Config } from "../config/config"
 import { Instance } from "../project/instance"
@@ -22,6 +22,9 @@ function globalFiles() {
   if (Flag.OPENCODE_CONFIG_DIR) {
     files.push(path.join(Flag.OPENCODE_CONFIG_DIR, "AGENTS.md"))
   }
+  // testagent_change start - opencode legacy global dir (user-created, lower priority)
+  files.push(path.join(opencodeConfig, "AGENTS.md"))
+  // testagent_change end
   files.push(path.join(Global.Path.config, "AGENTS.md"))
   // testagent_change start - also check ~/.testagent/AGENTS.md
   files.push(path.join(os.homedir(), ".testagent", "AGENTS.md"))
