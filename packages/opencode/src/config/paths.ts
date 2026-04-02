@@ -19,6 +19,22 @@ export namespace ConfigPaths {
     return files
   }
 
+  // testagent_change start - also scan .testagent/ directories for testagent.json
+  export async function testagentProjectFiles(directory: string, worktree: string) {
+    const dirs = await Array.fromAsync(
+      Filesystem.up({ targets: [".testagent"], start: directory, stop: worktree }),
+    )
+    const files: string[] = []
+    for (const dir of dirs.toReversed()) {
+      for (const file of ["testagent.jsonc", "testagent.json"]) {
+        const full = path.join(dir, file)
+        if (await Filesystem.exists(full)) files.push(full)
+      }
+    }
+    return files
+  }
+  // testagent_change end
+
   export async function directories(directory: string, worktree: string) {
     return [
       Global.Path.config,
@@ -41,6 +57,29 @@ export namespace ConfigPaths {
       ...(Flag.OPENCODE_CONFIG_DIR ? [Flag.OPENCODE_CONFIG_DIR] : []),
     ]
   }
+
+  // testagent_change start - also collect .testagent/ directories for testagent config
+  export async function testagentDirectories(directory: string, worktree: string) {
+    return [
+      ...(!Flag.OPENCODE_DISABLE_PROJECT_CONFIG
+        ? await Array.fromAsync(
+            Filesystem.up({
+              targets: [".testagent"],
+              start: directory,
+              stop: worktree,
+            }),
+          )
+        : []),
+      ...(await Array.fromAsync(
+        Filesystem.up({
+          targets: [".testagent"],
+          start: Global.Path.home,
+          stop: Global.Path.home,
+        }),
+      )),
+    ]
+  }
+  // testagent_change end
 
   export function fileInDirectory(dir: string, name: string) {
     return [path.join(dir, `${name}.jsonc`), path.join(dir, `${name}.json`)]

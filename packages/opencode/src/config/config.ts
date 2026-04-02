@@ -81,8 +81,21 @@ export namespace Config {
     if (target.instructions && source.instructions) {
       merged.instructions = Array.from(new Set([...target.instructions, ...source.instructions]))
     }
-    return merged
+    // testagent_change start - strip null sentinel values (null = delete key)
+    return stripNulls(merged) as Info
+    // testagent_change end
   }
+
+  // testagent_change start - null sentinel: setting a key to null removes it from the merged result
+  function stripNulls(obj: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(obj)) {
+      if (value === null) continue
+      result[key] = isRecord(value) ? stripNulls(value) : value
+    }
+    return result
+  }
+  // testagent_change end
 
   export type InstallInput = {
     signal?: AbortSignal
@@ -249,7 +262,7 @@ export namespace Config {
       })
       if (!md) continue
 
-      const patterns = ["/.opencode/command/", "/.opencode/commands/", "/command/", "/commands/"]
+      const patterns = ["/.opencode/command/", "/.opencode/commands/", "/.testagent/command/", "/.testagent/commands/", "/command/", "/commands/"] // testagent_change
       const file = rel(item, patterns) ?? path.basename(item)
       const name = trim(file)
 
@@ -288,7 +301,7 @@ export namespace Config {
       })
       if (!md) continue
 
-      const patterns = ["/.opencode/agent/", "/.opencode/agents/", "/agent/", "/agents/"]
+      const patterns = ["/.opencode/agent/", "/.opencode/agents/", "/.testagent/agent/", "/.testagent/agents/", "/agent/", "/agents/"] // testagent_change
       const file = rel(item, patterns) ?? path.basename(item)
       const agentName = trim(file)
 
@@ -1254,6 +1267,10 @@ export namespace Config {
             mergeDeep(yield* loadFile(path.join(Global.Path.config, "config.json"))),
             mergeDeep(yield* loadFile(path.join(Global.Path.config, "opencode.json"))),
             mergeDeep(yield* loadFile(path.join(Global.Path.config, "opencode.jsonc"))),
+            // testagent_change start
+            mergeDeep(yield* loadFile(path.join(Global.Path.config, "testagent.json"))),
+            mergeDeep(yield* loadFile(path.join(Global.Path.config, "testagent.jsonc"))),
+            // testagent_change end
           )
 
           const legacy = path.join(Global.Path.config, "config")
@@ -1329,6 +1346,13 @@ export namespace Config {
             )) {
               result = mergeConfigConcatArrays(result, yield* loadFile(file))
             }
+            // testagent_change start
+            for (const file of yield* Effect.promise(() =>
+              ConfigPaths.testagentProjectFiles(ctx.directory, ctx.worktree),
+            )) {
+              result = mergeConfigConcatArrays(result, yield* loadFile(file))
+            }
+            // testagent_change end
           }
 
           result.agent = result.agent || {}
@@ -1336,6 +1360,10 @@ export namespace Config {
           result.plugin = result.plugin || []
 
           const directories = yield* Effect.promise(() => ConfigPaths.directories(ctx.directory, ctx.worktree))
+          // testagent_change start - append .testagent dirs after .opencode dirs so they load last (higher priority)
+          const testagentDirs = yield* Effect.promise(() => ConfigPaths.testagentDirectories(ctx.directory, ctx.worktree))
+          const allDirs = [...directories, ...testagentDirs]
+          // testagent_change end
 
           if (Flag.OPENCODE_CONFIG_DIR) {
             log.debug("loading config from OPENCODE_CONFIG_DIR", { path: Flag.OPENCODE_CONFIG_DIR })
@@ -1343,7 +1371,7 @@ export namespace Config {
 
           const deps: Promise<void>[] = []
 
-          for (const dir of unique(directories)) {
+          for (const dir of unique(allDirs)) {
             if (dir.endsWith(".opencode") || dir === Flag.OPENCODE_CONFIG_DIR) {
               for (const file of ["opencode.jsonc", "opencode.json"]) {
                 log.debug(`loading config from ${path.join(dir, file)}`)
@@ -1353,6 +1381,17 @@ export namespace Config {
                 result.plugin ??= []
               }
             }
+            // testagent_change start - load testagent.json from .testagent/ dirs (higher priority)
+            if (dir.endsWith(".testagent")) {
+              for (const file of ["testagent.jsonc", "testagent.json"]) {
+                log.debug(`loading config from ${path.join(dir, file)}`)
+                result = mergeConfigConcatArrays(result, yield* loadFile(path.join(dir, file)))
+                result.agent ??= {}
+                result.mode ??= {}
+                result.plugin ??= []
+              }
+            }
+            // testagent_change end
 
             const dep = iife(async () => {
               const stale = await needsInstall(dir)
@@ -1417,6 +1456,11 @@ export namespace Config {
             for (const file of ["opencode.jsonc", "opencode.json"]) {
               result = mergeConfigConcatArrays(result, yield* loadFile(path.join(managedDir, file)))
             }
+            // testagent_change start
+            for (const file of ["testagent.jsonc", "testagent.json"]) {
+              result = mergeConfigConcatArrays(result, yield* loadFile(path.join(managedDir, file)))
+            }
+            // testagent_change end
           }
 
           for (const [name, mode] of Object.entries(result.mode ?? {})) {

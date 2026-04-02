@@ -23,6 +23,9 @@ function globalFiles() {
     files.push(path.join(Flag.OPENCODE_CONFIG_DIR, "AGENTS.md"))
   }
   files.push(path.join(Global.Path.config, "AGENTS.md"))
+  // testagent_change start - also check ~/.testagent/AGENTS.md
+  files.push(path.join(os.homedir(), ".testagent", "AGENTS.md"))
+  // testagent_change end
   if (!Flag.OPENCODE_DISABLE_CLAUDE_CODE_PROMPT) {
     files.push(path.join(os.homedir(), ".claude", "CLAUDE.md"))
   }
@@ -83,6 +86,14 @@ export namespace InstructionPrompt {
           break
         }
       }
+      // testagent_change start - also scan .testagent/ dirs for AGENTS.md
+      const testagentMatches = await Filesystem.findUp(
+        path.join(".testagent", "AGENTS.md"),
+        Instance.directory,
+        Instance.worktree,
+      )
+      testagentMatches.forEach((p) => paths.add(path.resolve(p)))
+      // testagent_change end
     }
 
     for (const file of globalFiles()) {
