@@ -26,7 +26,7 @@
     },
     "packages/app": {
       "name": "@opencode-ai/app",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@kobalte/core": "catalog:",
         "@opencode-ai/sdk": "workspace:*",
@@ -36,9 +36,10 @@
         "@solid-primitives/active-element": "2.1.3",
         "@solid-primitives/audio": "1.4.2",
         "@solid-primitives/event-bus": "1.1.2",
+        "@solid-primitives/event-listener": "2.4.5",
         "@solid-primitives/i18n": "2.2.1",
         "@solid-primitives/media": "2.3.3",
-        "@solid-primitives/resize-observer": "2.1.3",
+        "@solid-primitives/resize-observer": "2.1.5",
         "@solid-primitives/scroll": "2.1.3",
         "@solid-primitives/storage": "catalog:",
         "@solid-primitives/timer": "1.4.4",
@@ -79,7 +80,7 @@
     },
     "packages/console/app": {
       "name": "@opencode-ai/console-app",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@cloudflare/vite-plugin": "1.15.2",
         "@ibm/plex": "6.4.1",
@@ -113,7 +114,7 @@
     },
     "packages/console/core": {
       "name": "@opencode-ai/console-core",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@aws-sdk/client-sts": "3.782.0",
         "@jsx-email/render": "1.1.1",
@@ -140,7 +141,7 @@
     },
     "packages/console/function": {
       "name": "@opencode-ai/console-function",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@ai-sdk/anthropic": "3.0.64",
         "@ai-sdk/openai": "3.0.48",
@@ -164,7 +165,7 @@
     },
     "packages/console/mail": {
       "name": "@opencode-ai/console-mail",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@jsx-email/all": "2.2.3",
         "@jsx-email/cli": "1.4.3",
@@ -188,7 +189,7 @@
     },
     "packages/desktop": {
       "name": "@opencode-ai/desktop",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@opencode-ai/app": "workspace:*",
         "@opencode-ai/ui": "workspace:*",
@@ -221,7 +222,7 @@
     },
     "packages/desktop-electron": {
       "name": "@opencode-ai/desktop-electron",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@opencode-ai/app": "workspace:*",
         "@opencode-ai/ui": "workspace:*",
@@ -230,6 +231,7 @@
         "@solidjs/meta": "catalog:",
         "@solidjs/router": "0.15.4",
         "effect": "catalog:",
+        "electron-context-menu": "4.1.2",
         "electron-log": "^5",
         "electron-store": "^10",
         "electron-updater": "^6",
@@ -252,7 +254,7 @@
     },
     "packages/enterprise": {
       "name": "@opencode-ai/enterprise",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@opencode-ai/ui": "workspace:*",
         "@opencode-ai/util": "workspace:*",
@@ -281,7 +283,7 @@
     },
     "packages/function": {
       "name": "@opencode-ai/function",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@octokit/auth-app": "8.0.1",
         "@octokit/rest": "catalog:",
@@ -297,16 +299,16 @@
     },
     "packages/opencode": {
       "name": "testagent",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "bin": {
         "testagent": "./bin/opencode",
       },
       "dependencies": {
         "@actions/core": "1.11.1",
         "@actions/github": "6.0.1",
-        "@agentclientprotocol/sdk": "0.14.1",
+        "@agentclientprotocol/sdk": "0.16.1",
         "@ai-sdk/amazon-bedrock": "4.0.83",
-        "@ai-sdk/anthropic": "3.0.64",
+        "@ai-sdk/anthropic": "3.0.67",
         "@ai-sdk/azure": "3.0.49",
         "@ai-sdk/cerebras": "2.0.41",
         "@ai-sdk/cohere": "3.0.27",
@@ -320,16 +322,22 @@
         "@ai-sdk/openai-compatible": "2.0.37",
         "@ai-sdk/perplexity": "3.0.26",
         "@ai-sdk/provider": "3.0.8",
-        "@ai-sdk/provider-utils": "4.0.21",
+        "@ai-sdk/provider-utils": "4.0.23",
         "@ai-sdk/togetherai": "2.0.41",
         "@ai-sdk/vercel": "2.0.39",
         "@ai-sdk/xai": "3.0.75",
         "@aws-sdk/credential-providers": "3.993.0",
         "@clack/prompts": "1.0.0-alpha.1",
         "@effect/platform-node": "catalog:",
+        "@gitlab/gitlab-ai-provider": "3.6.0",
+        "@gitlab/opencode-gitlab-auth": "1.3.3",
+        "@hono/node-server": "1.19.11",
+        "@hono/node-ws": "1.3.0",
         "@hono/standard-validator": "0.1.5",
         "@hono/zod-validator": "catalog:",
+        "@lydell/node-pty": "1.2.0-beta.10",
         "@modelcontextprotocol/sdk": "1.27.1",
+        "@npmcli/arborist": "9.4.0",
         "@octokit/graphql": "9.0.2",
         "@octokit/rest": "catalog:",
         "@openauthjs/openauth": "catalog:",
@@ -337,9 +345,9 @@
         "@opencode-ai/script": "workspace:*",
         "@opencode-ai/sdk": "workspace:*",
         "@opencode-ai/util": "workspace:*",
-        "@openrouter/ai-sdk-provider": "2.3.3",
-        "@opentui/core": "0.1.95",
-        "@opentui/solid": "0.1.95",
+        "@openrouter/ai-sdk-provider": "2.4.2",
+        "@opentui/core": "0.1.97",
+        "@opentui/solid": "0.1.97",
         "@parcel/watcher": "2.5.1",
         "@pierre/diffs": "catalog:",
         "@solid-primitives/event-bus": "1.1.2",
@@ -352,7 +360,7 @@
         "bun-pty": "0.4.8",
         "chokidar": "4.0.3",
         "clipboardy": "4.0.0",
-        "cross-spawn": "^7.0.6",
+        "cross-spawn": "catalog:",
         "decimal.js": "10.5.0",
         "diff": "catalog:",
         "drizzle-orm": "catalog:",
@@ -368,6 +376,7 @@
         "jsonc-parser": "3.3.1",
         "mime-types": "3.0.2",
         "minimatch": "10.0.3",
+        "npm-package-arg": "13.0.2",
         "open": "10.1.2",
         "opencode-gitlab-auth": "2.0.1",
         "opencode-poe-auth": "0.0.1",
@@ -381,6 +390,7 @@
         "tree-sitter-powershell": "0.25.10",
         "turndown": "7.2.0",
         "ulid": "catalog:",
+        "venice-ai-sdk-provider": "2.0.1",
         "vscode-jsonrpc": "8.2.1",
         "web-tree-sitter": "0.25.10",
         "which": "6.0.1",
@@ -406,8 +416,10 @@
         "@tsconfig/bun": "catalog:",
         "@types/babel__core": "7.20.5",
         "@types/bun": "catalog:",
-        "@types/cross-spawn": "6.0.6",
+        "@types/cross-spawn": "catalog:",
         "@types/mime-types": "3.0.1",
+        "@types/npm-package-arg": "6.1.4",
+        "@types/npmcli__arborist": "6.3.3",
         "@types/semver": "^7.5.8",
         "@types/turndown": "5.0.5",
         "@types/which": "3.0.4",
@@ -423,22 +435,22 @@
     },
     "packages/plugin": {
       "name": "@opencode-ai/plugin",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@opencode-ai/sdk": "workspace:*",
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@opentui/core": "0.1.95",
-        "@opentui/solid": "0.1.95",
+        "@opentui/core": "0.1.97",
+        "@opentui/solid": "0.1.97",
         "@tsconfig/node22": "catalog:",
         "@types/node": "catalog:",
         "@typescript/native-preview": "catalog:",
         "typescript": "catalog:",
       },
       "peerDependencies": {
-        "@opentui/core": ">=0.1.95",
-        "@opentui/solid": ">=0.1.95",
+        "@opentui/core": ">=0.1.97",
+        "@opentui/solid": ">=0.1.97",
       },
       "optionalPeers": ["@opentui/core", "@opentui/solid"],
     },
@@ -454,10 +466,14 @@
     },
     "packages/sdk/js": {
       "name": "@opencode-ai/sdk",
-      "version": "1.3.13",
+      "version": "1.3.17",
+      "dependencies": {
+        "cross-spawn": "catalog:",
+      },
       "devDependencies": {
         "@hey-api/openapi-ts": "0.90.10",
         "@tsconfig/node22": "catalog:",
+        "@types/cross-spawn": "catalog:",
         "@types/node": "catalog:",
         "@typescript/native-preview": "catalog:",
         "typescript": "catalog:",
@@ -465,7 +481,7 @@
     },
     "packages/slack": {
       "name": "@opencode-ai/slack",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@opencode-ai/sdk": "workspace:*",
         "@slack/bolt": "^3.17.1",
@@ -500,7 +516,7 @@
     },
     "packages/ui": {
       "name": "@opencode-ai/ui",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@kobalte/core": "catalog:",
         "@opencode-ai/sdk": "workspace:*",
@@ -508,6 +524,7 @@
         "@pierre/diffs": "catalog:",
         "@shikijs/transformers": "3.9.2",
         "@solid-primitives/bounds": "0.1.3",
+        "@solid-primitives/event-listener": "2.4.5",
         "@solid-primitives/media": "2.3.3",
         "@solid-primitives/resize-observer": "2.1.3",
         "@solidjs/meta": "catalog:",
@@ -547,7 +564,7 @@
     },
     "packages/util": {
       "name": "@opencode-ai/util",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "zod": "catalog:",
       },
@@ -558,7 +575,7 @@
     },
     "packages/web": {
       "name": "@opencode-ai/web",
-      "version": "1.3.13",
+      "version": "1.3.17",
       "dependencies": {
         "@astrojs/cloudflare": "12.6.3",
         "@astrojs/markdown-remark": "6.3.1",
@@ -566,6 +583,7 @@
         "@astrojs/starlight": "0.34.3",
         "@fontsource/ibm-plex-mono": "5.2.5",
         "@shikijs/transformers": "3.20.0",
+        "@solid-primitives/resize-observer": "2.1.5",
         "@types/luxon": "catalog:",
         "ai": "catalog:",
         "astro": "5.7.13",
@@ -594,8 +612,6 @@
   "patchedDependencies": {
     "solid-js@1.9.10": "patches/solid-js@1.9.10.patch",
     "@standard-community/standard-openapi@0.2.9": "patches/@standard-community%2Fstandard-openapi@0.2.9.patch",
-    "@ai-sdk/anthropic@3.0.64": "patches/@ai-sdk%2Fanthropic@3.0.64.patch",
-    "@ai-sdk/provider-utils@4.0.21": "patches/@ai-sdk%2Fprovider-utils@4.0.21.patch",
   },
   "overrides": {
     "@types/bun": "catalog:",
@@ -603,7 +619,7 @@
   },
   "catalog": {
     "@cloudflare/workers-types": "4.20251008.0",
-    "@effect/platform-node": "4.0.0-beta.42",
+    "@effect/platform-node": "4.0.0-beta.43",
     "@hono/zod-validator": "0.4.2",
     "@kobalte/core": "0.13.11",
     "@octokit/rest": "22.0.0",
@@ -618,16 +634,18 @@
     "@tsconfig/bun": "1.0.9",
     "@tsconfig/node22": "22.0.2",
     "@types/bun": "1.3.11",
+    "@types/cross-spawn": "6.0.6",
     "@types/luxon": "3.7.1",
     "@types/node": "22.13.9",
     "@types/semver": "7.7.1",
     "@typescript/native-preview": "7.0.0-dev.20251207.1",
-    "ai": "6.0.138",
+    "ai": "6.0.149",
+    "cross-spawn": "7.0.6",
     "diff": "8.0.2",
     "dompurify": "3.3.1",
     "drizzle-kit": "1.0.0-beta.19-d95b7a4",
     "drizzle-orm": "1.0.0-beta.19-d95b7a4",
-    "effect": "4.0.0-beta.42",
+    "effect": "4.0.0-beta.43",
     "fuzzysort": "3.1.0",
     "hono": "4.10.7",
     "hono-openapi": "1.1.2",

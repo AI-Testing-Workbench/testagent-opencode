@@ -41,11 +41,11 @@ export function Tips() {
       </text>
       <text flexShrink={1}>
         <For each={parts}>
-          {(part) => <span style={{ fg: part.highlight ? theme.text : theme.textMuted ,ml:10}}>{part.text}</span>}
+          {(part) => <span style={{ fg: part.highlight ? theme.text : theme.textMuted, ml: 10 }}>{part.text}</span>}
         </For>
       </text>
     </box>
   )
 }
 // testagent_change
-const TIPS = ["testagent兼容opencode命令"]
+const TIPS = ["  testagent兼容opencode命令"]

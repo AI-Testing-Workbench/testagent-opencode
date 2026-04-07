@@ -236,6 +236,7 @@ for (const item of targets) {
     conditions: ["browser"],
     tsconfig: "./tsconfig.json",
     plugins: [plugin],
+    external: ["node-gyp"],
     compile: {
       autoloadBunfig: false,
       autoloadDotenv: false,

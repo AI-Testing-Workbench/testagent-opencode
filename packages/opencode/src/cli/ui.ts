@@ -4,6 +4,15 @@ import { NamedError } from "@opencode-ai/util/error"
 import { logo as glyphs } from "./logo"
 
 export namespace UI {
+  const wordmark = [
+    `████████╗███████╗███████╗████████╗     █████╗  ██████╗ ███████╗███╗   ██╗████████╗`,
+    `╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝    ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝`,
+    `   ██║   █████╗  ███████╗   ██║       ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   `,
+    `   ██║   ██╔══╝  ╚════██║   ██║       ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   `,
+    `   ██║   ███████╗███████║   ██║       ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   `,
+    `   ╚═╝   ╚══════╝╚══════╝   ╚═╝       ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   `,
+  ]
+
   export const CancelledError = NamedError.create("UICancelledError", z.void())
 
   export const Style = {
@@ -41,13 +50,16 @@ export namespace UI {
   }
 
   export function logo(pad?: string) {
-    // testagent_change start - plain text logo when right is empty
-    if (glyphs.right.length === 0) {
-      const cyan = "\x1b[96m"
-      const reset = "\x1b[0m"
-      return glyphs.left.map((row) => (pad ?? "") + cyan + row + reset).join(EOL)
+    if (!process.stdout.isTTY && !process.stderr.isTTY) {
+      const result = []
+      for (const row of wordmark) {
+        if (pad) result.push(pad)
+        result.push(row)
+        result.push(EOL)
+      }
+      return result.join("").trimEnd()
     }
-    // testagent_change end
+
     const result: string[] = []
     const reset = "\x1b[0m"
     const left = {
