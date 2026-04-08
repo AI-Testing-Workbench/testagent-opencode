@@ -64,6 +64,7 @@ function show(out: string) {
 const cli = yargs(args)
   .parserConfiguration({ "populate--": true })
   .scriptName("testagent") // testagent_change
+  .locale("en") //testagent_change
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")
@@ -103,7 +104,8 @@ const cli = yargs(args)
     process.env.OPENCODE = "1"
     process.env.OPENCODE_PID = String(process.pid)
 
-    Log.Default.info("testagent", { // testagent_change
+    Log.Default.info("testagent", {
+      // testagent_change
       version: Installation.VERSION,
       args: process.argv.slice(2),
     })

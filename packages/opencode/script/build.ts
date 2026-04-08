@@ -24,6 +24,21 @@ const skipModels = process.argv.includes("--skip-models")
 const targetArg = process.argv.find((a) => a.startsWith("--target="))?.split("=")[1]
 // testagent_change end
 
+// testagent_change start - patch y18n to handle EPERM on Windows (Bun virtual fs B:\~BUN\locales)
+// 不过有一个风险：patch 的路径 node_modules/.bun/y18n@5.0.8/... 是硬编码的，如果 y18n 版本升级了路径会变。你可以在 CI 里跑构建时留意那行 "y18n patch: pattern not found" 的警告。
+const y18nPath = path.join(dir, "../../node_modules/.bun/y18n@5.0.8/node_modules/y18n/build/lib/index.js")
+const y18nSrc = await Bun.file(y18nPath).text()
+const patched = y18nSrc.replace(
+  `if (err.code === 'ENOENT')\n                localeLookup = {};`,
+  `if (err.code === 'ENOENT' || err.code === 'EPERM')\n                localeLookup = {};`,
+)
+if (patched === y18nSrc) console.warn("y18n patch: pattern not found, may already be patched or version changed")
+else {
+  await Bun.write(y18nPath, patched)
+  console.log("y18n patched: EPERM handled in _readLocaleFile")
+}
+// testagent_change end
+
 // testagent_change start - removed models.dev remote fetch, MODELS_DEV_API_JSON is required
 if (!skipModels) {
   const modelsDataRaw = process.env.MODELS_DEV_API_JSON
@@ -199,8 +214,6 @@ const targets = targetArg
     : windowsFlag // testagent_change
       ? allTargets.filter((item) => item.os === "win32") // testagent_change
       : allTargets
-
-
 
 await $`rm -rf dist`
 
