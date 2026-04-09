@@ -3,6 +3,12 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js"
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
+//testagent_change start  取消掉界面
+if (process.platform === "win32" && process.env.KILO_PLATFORM === "vscode" && !("type" in process)) {
+  ;(process as NodeJS.Process & { type: string }).type = "browser"
+}
+// testagent_change end
+
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js"
 import {
   CallToolResultSchema,
