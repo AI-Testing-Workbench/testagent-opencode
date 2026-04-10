@@ -7,9 +7,10 @@ const id = "internal:home-tips"
 function View(props: { show: boolean }) {
   return (
     <box height={4} minHeight={0} width="100%" maxWidth={75} alignItems="center" paddingTop={3} flexShrink={1}>
-      <Show when={props.show}>
+      {/* testagent_change: show tips */}
+      {/* <Show when={props.show}>
         <Tips />
-      </Show>
+      </Show> */}
     </box>
   )
 }
