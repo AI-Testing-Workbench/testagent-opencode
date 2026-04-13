@@ -23,6 +23,9 @@
         "sst": "3.18.10",
         "turbo": "2.8.13",
       },
+      "optionalDependencies": {
+        "@opentui/core-win32-x64": "0.1.98",
+      },
     },
     "packages/app": {
       "name": "@opencode-ai/app",
@@ -1541,7 +1544,7 @@
 
     "@opentui/core-win32-arm64": ["@opentui/core-win32-arm64@0.1.97", "https://registry.npmmirror.com/@opentui/core-win32-arm64/-/core-win32-arm64-0.1.97.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-o/m9mD1dvOCwkxOUUyoEILl+d6tzh/85foJc4uqjXYi71NNcwg8u+Eq3/gdHuSKnlT1pusCPKoS1IDuBvZE24A=="],
 
-    "@opentui/core-win32-x64": ["@opentui/core-win32-x64@0.1.97", "https://registry.npmmirror.com/@opentui/core-win32-x64/-/core-win32-x64-0.1.97.tgz", { "os": "win32", "cpu": "x64" }, "sha512-Rwp7JOwrYm4wtzPHY2vv+2l91LXmKSI7CtbmWN1sSUGhBPtPGSvfwux3W5xaAZQa2KPEXicPjaKJZc+pob3YRg=="],
+    "@opentui/core-win32-x64": ["@opentui/core-win32-x64@0.1.98", "https://registry.npmmirror.com/@opentui/core-win32-x64/-/core-win32-x64-0.1.98.tgz", { "os": "win32", "cpu": "x64" }, "sha512-Mz1bFg2uEQSezc3ZiClINeVJTr6AAQEqH7h2K1axGZfI2FqZ9fFaiqbAWvSO0mAlIjdDjoT7RXM9MSIa4xs77Q=="],
 
     "@opentui/solid": ["@opentui/solid@0.1.97", "https://registry.npmmirror.com/@opentui/solid/-/solid-0.1.97.tgz", { "dependencies": { "@babel/core": "7.28.0", "@babel/preset-typescript": "7.27.1", "@opentui/core": "0.1.97", "babel-plugin-module-resolver": "5.0.2", "babel-preset-solid": "1.9.10", "entities": "7.0.1", "s-js": "^0.4.9" }, "peerDependencies": { "solid-js": "1.9.11" } }, "sha512-ma/uihG38F+6oLJVD8yR7z82FWmR8QhfesNV5SBXbN74riMCRyy6kyQ6SI4xs4ykt9BbZOjrKLq+Xt/0Pd0SJQ=="],
 
@@ -5418,6 +5421,8 @@
     "@opencode-ai/ui/@solid-primitives/resize-observer": ["@solid-primitives/resize-observer@2.1.3", "https://registry.npmmirror.com/@solid-primitives/resize-observer/-/resize-observer-2.1.3.tgz", { "dependencies": { "@solid-primitives/event-listener": "^2.4.3", "@solid-primitives/rootless": "^1.5.2", "@solid-primitives/static-store": "^0.1.2", "@solid-primitives/utils": "^6.3.2" }, "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-zBLje5E06TgOg93S7rGPldmhDnouNGhvfZVKOp+oG2XU8snA+GoCSSCz1M+jpNAg5Ek2EakU5UVQqL152WmdXQ=="],
 
     "@opencode-ai/web/@shikijs/transformers": ["@shikijs/transformers@3.20.0", "https://registry.npmmirror.com/@shikijs/transformers/-/transformers-3.20.0.tgz", { "dependencies": { "@shikijs/core": "3.20.0", "@shikijs/types": "3.20.0" } }, "sha512-PrHHMRr3Q5W1qB/42kJW6laqFyWdhrPF2hNR9qjOm1xcSiAO3hAHo7HaVyHE6pMyevmy3i51O8kuGGXC78uK3g=="],
+
+    "@opentui/core/@opentui/core-win32-x64": ["@opentui/core-win32-x64@0.1.97", "https://registry.npmmirror.com/@opentui/core-win32-x64/-/core-win32-x64-0.1.97.tgz", { "os": "win32", "cpu": "x64" }, "sha512-Rwp7JOwrYm4wtzPHY2vv+2l91LXmKSI7CtbmWN1sSUGhBPtPGSvfwux3W5xaAZQa2KPEXicPjaKJZc+pob3YRg=="],
 
     "@opentui/solid/@babel/core": ["@babel/core@7.28.0", "https://registry.npmmirror.com/@babel/core/-/core-7.28.0.tgz", { "dependencies": { "@ampproject/remapping": "^2.2.0", "@babel/code-frame": "^7.27.1", "@babel/generator": "^7.28.0", "@babel/helper-compilation-targets": "^7.27.2", "@babel/helper-module-transforms": "^7.27.3", "@babel/helpers": "^7.27.6", "@babel/parser": "^7.28.0", "@babel/template": "^7.27.2", "@babel/traverse": "^7.28.0", "@babel/types": "^7.28.0", "convert-source-map": "^2.0.0", "debug": "^4.1.0", "gensync": "^1.0.0-beta.2", "json5": "^2.2.3", "semver": "^6.3.1" } }, "sha512-UlLAnTPrFdNGoFtbSXwcGFQBtQZJCNjaN6hQNP3UPvuNXT1i82N26KL3dZeIpNalWywr9IuQuncaAfUaS1g6sQ=="],
 
