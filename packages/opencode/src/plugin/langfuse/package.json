@@ -1,0 +1,8 @@
+{
+  "name": "opencode-langfuse-plugin",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "langfuse": "^3.38.0"
+  }
+}
