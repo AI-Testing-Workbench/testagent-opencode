@@ -14,6 +14,8 @@ process.chdir(dir)
 
 import { Script } from "@opencode-ai/script"
 import pkg from "../package.json"
+// testagent_change - import root package.json for version
+import rootPkg from "../../../package.json"
 
 // testagent_change start - parse flags early
 // const singleFlag = process.argv.includes("--single")
@@ -240,7 +242,7 @@ for (const item of targets) {
     },
     entrypoints: ["./src/index.ts", parserWorker, workerPath, ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : [])],
     define: {
-      OPENCODE_VERSION: `'${Script.version}'`,
+      OPENCODE_VERSION: `'${rootPkg.version}'`, // testagent_change - use root package.json version
       OPENCODE_MIGRATIONS: JSON.stringify(migrations),
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
       OPENCODE_WORKER_PATH: workerPath,
