@@ -10,7 +10,6 @@
  * - Token and cost tracking (if available via events)
  * - Isolated traces for each conversation turn
  */
-console.log("[langfuse] Loading...")
 
 import { Plugin } from "@opencode-ai/plugin"
 
@@ -54,26 +53,38 @@ const config = {
     process.env.LANGFUSE_BASE_URL ?? envConfig.LANGFUSE_BASE_URL ?? "https://testhub-agent-trace-dev.paas.cmbchina.cn",
 }
 
-console.log("[langfuse] Config:", {
-  hasPK: !!config.publicKey,
-  hasSK: !!config.secretKey,
-})
-
-// ==================== Langfuse 客户端初始化 ====================
+// ==================== Langfuse 客户端初始化（懒加载单例）====================
 
 let langfuse: any = null
+let langfuseInitialized = false
 
-try {
-  const { default: Langfuse } = await import("langfuse")
-  langfuse = new Langfuse({
-    publicKey: config.publicKey,
-    secretKey: config.secretKey,
-    baseUrl: config.baseUrl,
-    flushAt: 1, // 每次调用立即刷新
+async function getLangfuse() {
+  if (langfuseInitialized) return langfuse
+  langfuseInitialized = true
+
+  console.log("[langfuse] Loading...")
+  console.log("[langfuse] Debug:", {
+    embeddedEnv: embeddedEnv ? "present" : "absent",
+    envConfigKeys: ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"],
   })
-  console.log("[langfuse] Client initialized")
-} catch (e) {
-  console.log("[langfuse] Failed:", e)
+  console.log("[langfuse] Config:", {
+    hasPK: !!config.publicKey,
+    hasSK: !!config.secretKey,
+  })
+
+  try {
+    const { default: Langfuse } = await import("langfuse")
+    langfuse = new Langfuse({
+      publicKey: config.publicKey,
+      secretKey: config.secretKey,
+      baseUrl: config.baseUrl,
+      flushAt: 1, // 每次调用立即刷新
+    })
+    console.log("[langfuse] Client initialized")
+  } catch (e) {
+    console.log("[langfuse] Failed:", e)
+  }
+  return langfuse
 }
 
 // ==================== 会话管理 ====================
@@ -205,8 +216,9 @@ function sanitize(input: any): any {
  * 刷新 Langfuse 数据到服务器
  */
 function flush() {
-  if (langfuse?.flush) {
-    langfuse.flush()
+  const lf = langfuse
+  if (lf?.flush) {
+    lf.flush()
   }
 }
 
@@ -231,9 +243,10 @@ function generateUUID(): string {
  * @returns Langfuse Trace 对象
  */
 function createNewTrace(sessionId: string, input: string, ctx: any, traceId: string) {
-  if (!langfuse) return null
+  const lf = langfuse
+  if (!lf) return null
 
-  const trace = langfuse.trace({
+  const trace = lf.trace({
     id: traceId, // 使用随机 UUID
     name: "opencode-agent",
     sessionId: sessionId, // 通过 sessionId 关联会话
@@ -289,6 +302,8 @@ function formatMessages(messages: any[]): string {
 // ==================== 插件主逻辑 ====================
 
 export const LangfusePlugin: Plugin = async (ctx) => {
+  // 懒加载初始化 langfuse 客户端（只执行一次）
+  await getLangfuse()
   console.log("[langfuse] Plugin started")
 
   return {
