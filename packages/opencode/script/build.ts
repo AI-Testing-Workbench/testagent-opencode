@@ -226,7 +226,7 @@ for (const item of targets) {
     conditions: ["browser"],
     tsconfig: "./tsconfig.json",
     plugins: [plugin],
-    external: ["node-gyp"],
+    external: ["node-gyp"], // testagent_change - langfuse is now bundled
     compile: {
       autoloadBunfig: false,
       autoloadDotenv: false,

@@ -25,28 +25,22 @@ const embeddedEnv = LANGFUSE_ENV || ""
  * @param path .env 文件路径
  * @returns 环境变量对象
  */
-function loadEnv(path: string): Record<string, string> {
+function loadEnv(content: string): Record<string, string> {
   const env: Record<string, string> = {}
-  if (!existsSync(path)) return env
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith("#")) continue
 
-  try {
-    const content = readFileSync(path, "utf-8")
-    for (const line of content.split("\n")) {
-      const trimmed = line.trim()
-      // 跳过空行和注释
-      if (!trimmed || trimmed.startsWith("#")) continue
-
-      const idx = trimmed.indexOf("=")
-      if (idx > 0) {
-        const key = trimmed.slice(0, idx).trim()
-        const val = trimmed
-          .slice(idx + 1)
-          .trim()
-          .replace(/^[\"']|[\"']$/g, "")
-        env[key] = val
-      }
+    const idx = trimmed.indexOf("=")
+    if (idx > 0) {
+      const key = trimmed.slice(0, idx).trim()
+      const val = trimmed
+        .slice(idx + 1)
+        .trim()
+        .replace(/^["']|["']$/g, "")
+      env[key] = val
     }
-  } catch {}
+  }
   return env
 }
 
