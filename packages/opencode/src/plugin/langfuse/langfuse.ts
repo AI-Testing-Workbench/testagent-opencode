@@ -10,9 +10,10 @@
  * - Token and cost tracking (if available via events)
  * - Isolated traces for each conversation turn
  */
+console.log("[langfuse] Loading...")
 
 import { Plugin } from "@opencode-ai/plugin"
-
+import { readFileSync, existsSync } from "fs"
 declare const LANGFUSE_ENV: string
 
 // ==================== 配置加载 ====================
@@ -20,26 +21,32 @@ declare const LANGFUSE_ENV: string
 const embeddedEnv = LANGFUSE_ENV || ""
 
 /**
- * 从 .env 内容加载环境变量
- * @param content .env 文件内容
+ * 从 .env 文件加载环境变量
+ * @param path .env 文件路径
  * @returns 环境变量对象
  */
-function loadEnv(content: string): Record<string, string> {
+function loadEnv(path: string): Record<string, string> {
   const env: Record<string, string> = {}
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith("#")) continue
+  if (!existsSync(path)) return env
 
-    const idx = trimmed.indexOf("=")
-    if (idx > 0) {
-      const key = trimmed.slice(0, idx).trim()
-      const val = trimmed
-        .slice(idx + 1)
-        .trim()
-        .replace(/^["']|["']$/g, "")
-      env[key] = val
+  try {
+    const content = readFileSync(path, "utf-8")
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim()
+      // 跳过空行和注释
+      if (!trimmed || trimmed.startsWith("#")) continue
+
+      const idx = trimmed.indexOf("=")
+      if (idx > 0) {
+        const key = trimmed.slice(0, idx).trim()
+        const val = trimmed
+          .slice(idx + 1)
+          .trim()
+          .replace(/^[\"']|[\"']$/g, "")
+        env[key] = val
+      }
     }
-  }
+  } catch {}
   return env
 }
 
@@ -53,38 +60,31 @@ const config = {
     process.env.LANGFUSE_BASE_URL ?? envConfig.LANGFUSE_BASE_URL ?? "https://testhub-agent-trace-dev.paas.cmbchina.cn",
 }
 
-// ==================== Langfuse 客户端初始化（懒加载单例）====================
+console.log("[langfuse] Loading...")
+console.log("[langfuse] Debug:", {
+  embeddedEnv: embeddedEnv ? "present" : "absent",
+  envConfigKeys: ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"],
+})
+console.log("[langfuse] Config:", {
+  hasPK: !!config.publicKey,
+  hasSK: !!config.secretKey,
+})
+
+// ==================== Langfuse 客户端初始化 ====================
 
 let langfuse: any = null
-let langfuseInitialized = false
 
-async function getLangfuse() {
-  if (langfuseInitialized) return langfuse
-  langfuseInitialized = true
-
-  console.log("[langfuse] Loading...")
-  console.log("[langfuse] Debug:", {
-    embeddedEnv: embeddedEnv ? "present" : "absent",
-    envConfigKeys: ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"],
+try {
+  const { default: Langfuse } = await import("langfuse")
+  langfuse = new Langfuse({
+    publicKey: config.publicKey,
+    secretKey: config.secretKey,
+    baseUrl: config.baseUrl,
+    flushAt: 1, // 每次调用立即刷新
   })
-  console.log("[langfuse] Config:", {
-    hasPK: !!config.publicKey,
-    hasSK: !!config.secretKey,
-  })
-
-  try {
-    const { default: Langfuse } = await import("langfuse")
-    langfuse = new Langfuse({
-      publicKey: config.publicKey,
-      secretKey: config.secretKey,
-      baseUrl: config.baseUrl,
-      flushAt: 1, // 每次调用立即刷新
-    })
-    console.log("[langfuse] Client initialized")
-  } catch (e) {
-    console.log("[langfuse] Failed:", e)
-  }
-  return langfuse
+  console.log("[langfuse] Client initialized")
+} catch (e) {
+  console.log("[langfuse] Failed:", e)
 }
 
 // ==================== 会话管理 ====================
@@ -125,10 +125,12 @@ interface GenInfo {
   startTime: Date // 开始时间
   completionStartTime: Date | null // 首个 token 时间
   stepNumber: number // 步骤编号
-  output: string // 输出内容
+  output: string // 输出内容（纯文本，含 <think>）
   parts: string[] // 部分输出数组
+  toolCalls: Array<{ toolCallId: string; name: string; args: any }> // 工具调用信息
   isSkillChild: boolean // 是否为 Skill 的子节点
   hasUsage: boolean // 是否已经收到 usage 信息
+  finalOutput: { text: string; tool_calls?: any[]; usage?: any } | null // 缓存最终结构化输出
 }
 
 /**
@@ -156,6 +158,9 @@ const skillStack: { callID: string; context: SkillContext }[] = []
 
 // 全局 generation 列表，按创建顺序记录所有 generation
 const allGenerations: GenInfo[] = []
+
+// 当前活跃的 generation（由 chat.params 设置，由 step-finish 清除）
+let activeGen: GenInfo | null = null
 
 // 当前活跃的 Trace ID
 let currentTraceId: string | null = null
@@ -186,6 +191,12 @@ const userInputs = new Map<string, string>()
 // 存储 LLM 输入消息
 const llmInputs = new Map<string, any[]>()
 
+// 存储 LLM 工具定义
+const llmTools = new Map<string, any[]>()
+
+// 存储 LLM 输出数据
+const llmOutputs = new Map<string, { text: string; tool_calls: any[]; usage: any; reasoning: string }>()
+
 // 存储当前生成的索引
 const currentGenIdx = new Map<string, number>()
 
@@ -194,6 +205,10 @@ const trackedSessionIds = new Set<string>()
 
 // 消息计数器，用于生成唯一的 Trace ID（虽然现在用 UUID，但保留用于其他用途）
 const messageCounter = new Map<string, number>()
+
+// ==================== 常量 ====================
+
+const OBSERVATION_TAGS = ["testagent"]
 
 // ==================== 工具函数 ====================
 
@@ -216,9 +231,8 @@ function sanitize(input: any): any {
  * 刷新 Langfuse 数据到服务器
  */
 function flush() {
-  const lf = langfuse
-  if (lf?.flush) {
-    lf.flush()
+  if (langfuse?.flush) {
+    langfuse.flush()
   }
 }
 
@@ -243,15 +257,18 @@ function generateUUID(): string {
  * @returns Langfuse Trace 对象
  */
 function createNewTrace(sessionId: string, input: string, ctx: any, traceId: string) {
-  const lf = langfuse
-  if (!lf) return null
+  if (!langfuse) return null
 
-  const trace = lf.trace({
+  const traceName = input.length > 100 ? input.slice(0, 100) + "..." : input
+
+  const trace = langfuse.trace({
     id: traceId, // 使用随机 UUID
-    name: "opencode-agent",
+    name: traceName,
     sessionId: sessionId, // 通过 sessionId 关联会话
     input,
+    tags: OBSERVATION_TAGS,
     metadata: {
+      tags: OBSERVATION_TAGS,
       project: ctx.project?.name,
       directory: ctx.directory,
     },
@@ -299,11 +316,73 @@ function formatMessages(messages: any[]): string {
     .join("\n")
 }
 
+/**
+ * 将内部消息格式转换为标准 LLM 消息格式
+ * @param messages 内部消息数组
+ * @returns 标准消息数组
+ */
+function convertToLLMMessages(messages: any[]): any[] {
+  return messages
+    .filter((m) => m.info?.role && m.parts?.length > 0)
+    .map((m) => {
+      const role = m.info.role
+      const name = m.info.name || role
+      const content = m.parts
+        .filter(
+          (p: any) => p.type === "text" || p.type === "tool-call" || p.type === "tool-result" || p.type === "reasoning",
+        )
+        .map((p: any) => {
+          if (p.type === "text") return { type: "text", text: p.text }
+          if (p.type === "tool-call")
+            return {
+              type: "tool_call",
+              tool_call: {
+                id: p.toolCallId || "",
+                name: p.name,
+                arguments: JSON.stringify(p.args || {}),
+              },
+            }
+          if (p.type === "tool-result")
+            return {
+              type: "tool_result",
+              tool_result: {
+                tool_call_id: p.toolCallId || "",
+                content: p.output,
+              },
+            }
+          if (p.type === "reasoning") return { type: "text", text: p.text }
+          return { type: p.type, text: JSON.stringify(p) }
+        })
+      return { role, name, content }
+    })
+}
+
+/**
+ * 构建 LLM 输入
+ * @param messages 内部消息数组
+ * @param tools 工具定义数组
+ * @returns { json: string, dict: object }
+ */
+function buildLLMInput(messages: any[], tools: any[]): { json: string; dict: object } {
+  const formattedMessages = convertToLLMMessages(messages)
+  const formattedTools = tools.map((t) => {
+    if (t.type === "function") return t
+    return {
+      type: "function",
+      function: {
+        name: t.name || t,
+        description: t.description || "",
+        parameters: t.parameters || { type: "object", properties: {} },
+      },
+    }
+  })
+  const dict = { messages: formattedMessages, tools: formattedTools }
+  return { json: JSON.stringify(dict, null, 2), dict }
+}
+
 // ==================== 插件主逻辑 ====================
 
 export const LangfusePlugin: Plugin = async (ctx) => {
-  // 懒加载初始化 langfuse 客户端（只执行一次）
-  await getLangfuse()
   console.log("[langfuse] Plugin started")
 
   return {
@@ -333,12 +412,23 @@ export const LangfusePlugin: Plugin = async (ctx) => {
       // 创建新的 Trace
       const trace = createNewTrace(sessionId, textContent || input.message?.content || "message", ctx, traceId)
 
-      // 更新 Trace 元数据
+      // 更新 Trace 元数据 - 添加完整的 input 和 output
       if (trace) {
         trace.update({
           metadata: {
             messageID: input.messageID,
             messageIndex: count,
+            input: {
+              sessionID: input.sessionID,
+              agent: input.agent,
+              model: input.model,
+              messageID: input.messageID,
+              variant: input.variant,
+            },
+            output: {
+              message: output.message,
+              parts: output.parts,
+            },
           },
         })
       }
@@ -350,6 +440,19 @@ export const LangfusePlugin: Plugin = async (ctx) => {
      */
     "chat.params": async (input, output) => {
       if (!langfuse) return
+
+      // 检查 metadata 中的 PasttoolCalls，如果包含 skill 调用，说明 skill 已结束
+      // 当前 LLM 应与 skill 同层级，不再是 skill 的子节点
+      const pastToolCalls = input?.message?.metadata?.PasttoolCalls ?? input?.metadata?.PasttoolCalls ?? []
+      if (Array.isArray(pastToolCalls) && pastToolCalls.length > 0) {
+        const hasSkillCall = pastToolCalls.some((tc: any) => tc?.name === "skill" || tc?.tool === "skill")
+        if (hasSkillCall && skillStack.length > 0) {
+          const popped = skillStack.pop()
+          if (popped) {
+            toolSpans.delete(popped.callID)
+          }
+        }
+      }
 
       const sessionId = currentSessionId || input.sessionID
       const traceId = currentTraceId || generateUUID()
@@ -363,22 +466,52 @@ export const LangfusePlugin: Plugin = async (ctx) => {
       const modelId = input.model?.id || "unknown"
       const modelName = `${providerId}/${modelId}`
 
-      // 获取 LLM 输入消息
+      // 获取 LLM 输入消息和工具定义，构建 input
       const messages = llmInputs.get(sessionId) || []
-      const llmInput = formatMessages(messages) || input.message?.content || userInputs.get(sessionId) || "message"
+      // 跳过没有实际消息的 generation 创建（第一次 chat.params 可能在 transform 之前触发）
+      if (messages.length === 0) return
+
+      const tools = llmTools.get(sessionId) || []
+      const builtInput = buildLLMInput(messages, tools)
+      const llmInput = builtInput.json
+      const llmInputDict = builtInput.dict
 
       const startTime = new Date()
       let gen: any
       let targetGenList: GenInfo[]
       let targetTraceId: string
 
+      // 构建 model_parameters，传递给 Langfuse SDK
+      const modelParameters: Record<string, any> = {}
+      if (output.temperature !== undefined) modelParameters.temperature = output.temperature
+      if (output.topP !== undefined) modelParameters.top_p = output.topP
+      if (output.topK !== undefined) modelParameters.top_k = output.topK
+      if (output.maxOutputTokens !== undefined) modelParameters.max_tokens = output.maxOutputTokens
+
+      // 构建 metadata，模型信息包含 name、model、parameters
+      const genMetadata = {
+        spanKind: "llm",
+        model: {
+          name: modelName,
+          provider: providerId,
+          id: modelId,
+          parameters: modelParameters,
+        },
+        input: llmInputDict,
+        output: {},
+        tags: OBSERVATION_TAGS,
+      }
+
       // 如果在 Skill 上下文中，创建 Skill 的子 Generation
       if (skillContext) {
         gen = skillContext.span.generation({
-          name: `llm-skill-${skillContext.gens.length + 1}`,
+          name: "llm",
           model: modelName,
+          modelParameters,
           input: llmInput,
           startTime: startTime.toISOString(),
+          metadata: genMetadata,
+          tags: OBSERVATION_TAGS,
         })
         targetGenList = skillContext.gens
         targetTraceId = skillContext.traceId
@@ -392,20 +525,18 @@ export const LangfusePlugin: Plugin = async (ctx) => {
         const idx = genList.length
         currentGenIdx.set(traceId, idx)
 
+        const genParams = {
+          name: "llm",
+          model: modelName,
+          modelParameters,
+          input: llmInput,
+          startTime: startTime.toISOString(),
+          metadata: genMetadata,
+          tags: OBSERVATION_TAGS,
+        }
+
         // 根据是否有父级节点，决定创建方式
-        gen = currentParent
-          ? currentParent.generation({
-              name: `llm-${idx + 1}`,
-              model: modelName,
-              input: llmInput,
-              startTime: startTime.toISOString(),
-            })
-          : trace.generation({
-              name: `llm-${idx + 1}`,
-              model: modelName,
-              input: llmInput,
-              startTime: startTime.toISOString(),
-            })
+        gen = currentParent ? currentParent.generation(genParams) : trace.generation(genParams)
 
         targetGenList = genList
         targetTraceId = traceId
@@ -421,24 +552,32 @@ export const LangfusePlugin: Plugin = async (ctx) => {
         stepNumber: targetGenList.length + 1,
         output: "",
         parts: [],
+        toolCalls: [],
         isSkillChild: !!skillContext,
         hasUsage: false,
+        finalOutput: null,
       }
 
       targetGenList.push(genInfo)
 
       // 同时添加到全局列表
       allGenerations.push(genInfo)
+
+      // 设置为当前活跃的 generation，后续事件将路由到它
+      activeGen = genInfo
     },
 
     /**
      * 转换聊天消息
-     * 在消息发送给 LLM 之前，记录消息内容
+     * 在消息发送给 LLM 之前，记录消息内容和工具定义
      */
     "experimental.chat.messages.transform": async (input, output) => {
       const sessionId = input.sessionID || currentSessionId || [...trackedSessionIds].pop()
       if (sessionId) {
         llmInputs.set(sessionId, output.messages)
+        if (output.tools && output.tools.length > 0) {
+          llmTools.set(sessionId, output.tools)
+        }
       }
     },
 
@@ -466,15 +605,24 @@ export const LangfusePlugin: Plugin = async (ctx) => {
         const currentParent = isSkill ? null : getActiveParent()
 
         // 创建工具调用的 Span
-        const spanObj = currentParent
-          ? currentParent.span({
-              name: `tool:${input.tool}`,
-              input: sanitize(output.args),
-            })
-          : trace.span({
-              name: `tool:${input.tool}`,
-              input: sanitize(output.args),
-            })
+        const skillName = output.args?.name || output.args?.skill || "skill"
+        const spanName = isSkill ? `skill:${skillName}` : `tool:${input.tool}`
+        const spanParams = {
+          name: spanName,
+          input: sanitize(output.args),
+          tags: OBSERVATION_TAGS,
+          metadata: {
+            spanKind: "tool",
+            tags: OBSERVATION_TAGS,
+            input: {
+              tool: input.tool,
+              sessionID: input.sessionID,
+              callID: input.callID,
+              args: output.args,
+            },
+          },
+        }
+        const spanObj = currentParent ? currentParent.span(spanParams) : trace.span(spanParams)
 
         toolSpans.set(input.callID, spanObj)
 
@@ -495,7 +643,24 @@ export const LangfusePlugin: Plugin = async (ctx) => {
       if (span) {
         const isSkill = input.tool === "skill"
 
-        span.end({ output: String(output.output).slice(0, 10000) })
+        span.end({
+          output: String(output.output).slice(0, 10000),
+          metadata: {
+            spanKind: "tool",
+            tags: OBSERVATION_TAGS,
+            output: {
+              title: output.title,
+              output: output.output,
+              metadata: output.metadata,
+            },
+            input: {
+              tool: input.tool,
+              sessionID: input.sessionID,
+              callID: input.callID,
+              args: input.args,
+            },
+          },
+        })
 
         if (!isSkill) {
           toolSpans.delete(input.callID)
@@ -510,27 +675,21 @@ export const LangfusePlugin: Plugin = async (ctx) => {
      * 更新 LLM 生成的输出
      */
     "experimental.text.complete": async (input, output) => {
-      const sessionId = input.sessionID || currentSessionId
-      const traceId = currentTraceId || generateUUID()
+      const g = activeGen
+      if (!g) return
 
-      const idx = currentGenIdx.get(traceId) ?? -1
-      const genList = gens.get(traceId)
+      g.output = output.text
 
-      if (genList && idx >= 0 && idx < genList.length) {
-        const g = genList[idx]
-        g.output = output.text
-
-        // 如果是首次收到输出，记录 completionStartTime
-        if (!g.completionStartTime) {
-          g.completionStartTime = new Date()
-          g.gen.update({
-            output: output.text,
-            completionStartTime: g.completionStartTime.toISOString(),
-          })
-        } else {
-          g.gen.update({ output: output.text })
-        }
-      }
+      g.gen.update({
+        output: output.text,
+        metadata: {
+          spanKind: "llm",
+          model: g.gen.metadata?.model,
+          input: g.gen.metadata?.input,
+          output: { text: output.text },
+          tags: OBSERVATION_TAGS,
+        },
+      })
     },
 
     /**
@@ -558,11 +717,54 @@ export const LangfusePlugin: Plugin = async (ctx) => {
         const sessionId = part.sessionID || currentSessionId
         if (!sessionId) return
 
+        // 使用 activeGen 进行事件路由，确保每个事件都路由到正确的 generation
+        const g = activeGen
+
+        // 先收集各种类型的部分输出，并在首次收到内容时记录 completionStartTime
+        // 必须在 step-finish 处理之前执行，否则 activeGen 会被清空
+        if (g && part.type !== "step-finish") {
+          if (part.type === "text" && part.text) {
+            if (!g.completionStartTime) {
+              g.completionStartTime = new Date()
+              g.gen.update({
+                completionStartTime: g.completionStartTime.toISOString(),
+              })
+            }
+            g.parts.push(part.text)
+          }
+          if (part.type === "reasoning" && part.text) {
+            if (!g.completionStartTime) {
+              g.completionStartTime = new Date()
+              g.gen.update({
+                completionStartTime: g.completionStartTime.toISOString(),
+              })
+            }
+            g.parts.push(`Reasoning: ${part.text.substring(0, 500)}`)
+          }
+          if (part.type === "tool" && part.state?.status === "running") {
+            if (!g.completionStartTime) {
+              g.completionStartTime = new Date()
+              g.gen.update({
+                completionStartTime: g.completionStartTime.toISOString(),
+              })
+            }
+            const toolName = part.tool
+            const toolArgs = part.state?.input ?? {}
+            g.parts.push(`Tool Call: ${toolName}(${JSON.stringify(toolArgs)?.substring(0, 500)})`)
+            g.toolCalls.push({
+              toolCallId: part.callID || "",
+              name: toolName,
+              args: toolArgs,
+            })
+          }
+          if (part.type === "tool-result") {
+            g.parts.push(`Tool Result: ${part.output?.substring(0, 1000) || ""}`)
+          }
+        }
+
         // 处理步骤完成事件
-        if (part.type === "step-finish" && part.tokens) {
+        if (part.type === "step-finish" && part.tokens && g) {
           // Step 完成后，判断是否要结束 skill 栈
-          // 如果 finishReason 不是 "tool-calls"，说明 LLM 没有产生新的工具调用
-          // 这表示当前 skill 的任务已完成
           if (part.reason !== "tool-calls" && skillStack.length > 0) {
             const popped = skillStack.pop()
             if (popped) {
@@ -570,67 +772,66 @@ export const LangfusePlugin: Plugin = async (ctx) => {
             }
           }
 
-          // 从全局列表中找到最近创建的、还没有收到 step-finish 的 generation
-          // 倒序遍历，找到第一个没有 usage 信息的 generation
-          for (let i = allGenerations.length - 1; i >= 0; i--) {
-            const g = allGenerations[i]
-            // 检查这个 generation 是否已经有 usage 信息
-            // 如果没有，说明这是它的 step-finish 事件
-            if (!g.hasUsage) {
-              const endTime = new Date()
-              const latencyMs = endTime.getTime() - g.startTime.getTime()
-              const latencySec = latencyMs / 1000
-              const timeToFirstTokenSec = g.completionStartTime
-                ? (g.completionStartTime.getTime() - g.startTime.getTime()) / 1000
-                : null
+          const endTime = new Date()
 
-              const finalOutput = g.parts.length > 0 ? g.parts.join("\n\n") : g.output
+          // 若首 token 时间未记录（纯工具调用节点），用 endTime 兜底避免 time_to_first_token = 总 latency
+          if (!g.completionStartTime) {
+            g.completionStartTime = endTime
+            g.gen.update({ completionStartTime: endTime.toISOString() })
+          }
 
-              // 更新生成信息，包括性能指标
-              g.gen.update({
-                endTime: endTime.toISOString(),
-                output:
-                  finalOutput || `Step ${g.stepNumber} completed with ${part.tokens.total} tokens, cost ${part.cost}`,
-                usage: {
-                  promptTokens: part.tokens.input,
-                  completionTokens: part.tokens.output,
-                  totalTokens: part.tokens.total,
-                },
-                metadata: {
-                  cost: part.cost,
-                  reasoningTokens: part.tokens.reasoning,
-                  cacheRead: part.tokens.cache?.read,
-                  cacheWrite: part.tokens.cache?.write,
-                  latencyMs: latencyMs,
-                  latencySec: latencySec,
-                  timeToFirstTokenSec: timeToFirstTokenSec,
-                },
-              })
+          // 从 parts 中提取纯文本内容（排除 Tool Call/Result/Reasoning 标记）
+          const textContent = g.parts
+            .filter((p) => !p.startsWith("Tool Call:") && !p.startsWith("Tool Result:") && !p.startsWith("Reasoning:"))
+            .join("\n\n")
+          const reasonText = g.parts
+            .filter((p) => p.startsWith("Reasoning:"))
+            .map((p) => p.replace(/^Reasoning: /, ""))
+            .join("\n")
+          const fullText = reasonText ? `<think>\n${reasonText}</think>\n\n${textContent}` : textContent
 
-              // 标记这个 generation 已经收到 step-finish
-              g.hasUsage = true
-              break
-            }
-          }
-        }
+          // 构建 tool_calls 数组
+          const toolCallsOutput = g.toolCalls.map((tc) => ({
+            type: "tool_use",
+            id: tc.toolCallId || `call_${Math.random().toString(36).substring(2, 12)}`,
+            name: tc.name,
+            input: tc.args || {},
+          }))
 
-        // 收集各种类型的部分输出
-        // 找到当前正在生成的 generation（最后一个）
-        if (allGenerations.length > 0) {
-          const currentGen = allGenerations[allGenerations.length - 1]
+          // 构建结构化输出: { text, tool_calls, usage }
+          const structuredOutput = {
+            text: fullText,
+            tool_calls: toolCallsOutput.length > 0 ? toolCallsOutput : undefined,
+            usage: {
+              input_tokens: part.tokens.input ?? 0,
+              output_tokens: part.tokens.output ?? 0,
+              total_tokens: part.tokens.total ?? 0,
+            },
+          }
 
-          if (part.type === "text" && part.text) {
-            currentGen.parts.push(part.text)
-          }
-          if (part.type === "tool-call") {
-            currentGen.parts.push(`Tool Call: ${part.name}(${JSON.stringify(part.args)?.substring(0, 500)})`)
-          }
-          if (part.type === "tool-result") {
-            currentGen.parts.push(`Tool Result: ${part.output?.substring(0, 1000) || ""}`)
-          }
-          if (part.type === "reasoning" && part.text) {
-            currentGen.parts.push(`Reasoning: ${part.text.substring(0, 500)}`)
-          }
+          g.gen.update({
+            endTime: endTime.toISOString(),
+            usage: {
+              input: part.tokens.input ?? 0,
+              output: part.tokens.output ?? 0,
+              total: part.tokens.total ?? 0,
+            },
+            output: JSON.stringify(structuredOutput, null, 2),
+            metadata: {
+              spanKind: "llm",
+              model: g.gen.metadata?.model,
+              input: g.gen.metadata?.input,
+              output: structuredOutput,
+              tags: OBSERVATION_TAGS,
+            },
+          })
+
+          // 缓存最终结构化输出，供 session.idle 读取
+          g.finalOutput = structuredOutput
+
+          // 标记这个 generation 已经收到 step-finish，清除 activeGen
+          g.hasUsage = true
+          activeGen = null
         }
       }
 
@@ -644,37 +845,55 @@ export const LangfusePlugin: Plugin = async (ctx) => {
         const traceId = currentTraceId || generateUUID()
 
         const trace = traces.get(traceId)
-        const genList = gens.get(traceId)
 
-        // 收集所有 generation 的输出（包括 trace 级别和 skill 级别）
-        const allOutputs: string[] = []
+        // 辅助函数：从 GenInfo 构建结构化输出并缓存到 g.finalOutput
+        const resolveOutput = (g: GenInfo) => {
+          if (g.finalOutput) return g.finalOutput
 
-        // 更新 trace 级别的所有 generation
-        if (genList) {
-          for (const g of genList) {
-            const finalOutput = g.parts.length > 0 ? g.parts.join("\n\n") : g.output
-            if (finalOutput) {
-              g.gen.update({ output: finalOutput })
-              allOutputs.push(finalOutput)
-            }
+          const textContent = g.parts
+            .filter((p) => !p.startsWith("Tool Call:") && !p.startsWith("Tool Result:") && !p.startsWith("Reasoning:"))
+            .join("\n\n")
+          const reasonText = g.parts
+            .filter((p) => p.startsWith("Reasoning:"))
+            .map((p) => p.replace(/^Reasoning: /, ""))
+            .join("\n")
+          const fullText = reasonText ? `<think>\n${reasonText}</think>\n\n${textContent}` : textContent
+
+          const toolCallsOutput = g.toolCalls.map((tc) => ({
+            type: "tool_use",
+            id: tc.toolCallId || `call_${Math.random().toString(36).substring(2, 12)}`,
+            name: tc.name,
+            input: tc.args || {},
+          }))
+
+          const out = {
+            text: fullText || g.output,
+            tool_calls: toolCallsOutput.length > 0 ? toolCallsOutput : undefined,
+            usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
           }
+
+          g.gen.update({
+            output: JSON.stringify(out, null, 2),
+            metadata: {
+              spanKind: "llm",
+              model: g.gen.metadata?.model,
+              output: out,
+              tags: OBSERVATION_TAGS,
+            },
+          })
+          g.finalOutput = out
+          return out
         }
 
-        // 更新所有 skill 内的 generation
-        for (const entry of skillStack) {
-          for (const g of entry.context.gens) {
-            const finalOutput = g.parts.length > 0 ? g.parts.join("\n\n") : g.output
-            if (finalOutput && g.gen) {
-              g.gen.update({ output: finalOutput })
-              allOutputs.push(finalOutput)
-            }
-          }
-        }
+        // 确保所有 generation 都有最终输出
+        for (const g of allGenerations) resolveOutput(g)
 
-        // 更新 Trace 的最终输出：使用最后一个有内容的输出
-        if (trace && allOutputs.length > 0) {
-          const finalTraceOutput = allOutputs[allOutputs.length - 1]
-          trace.update({ output: finalTraceOutput })
+        // 更新 Trace 的最终输出：取最后一个 LLM generation 的 text，去掉 <think>...</think> 内容
+        if (trace && allGenerations.length > 0) {
+          const last = allGenerations[allGenerations.length - 1]!
+          const rawText = last.finalOutput?.text || last.output || ""
+          const finalText = rawText.replace(/<think>[\s\S]*?<\/think>/g, "").trim()
+          trace.update({ output: finalText })
         }
 
         flush()
@@ -687,14 +906,17 @@ export const LangfusePlugin: Plugin = async (ctx) => {
           currentGenIdx.delete(oldTraceId)
         }
 
-        // 清理 skill 栈和全局 generation 列表
+        // 清理 skill 栈、activeGen 和全局 generation 列表
         skillStack.length = 0
+        activeGen = null
         toolSpans.clear()
         allGenerations.length = 0
 
         messageCounter.delete(sessionId)
         userInputs.delete(sessionId)
         llmInputs.delete(sessionId)
+        llmTools.delete(sessionId)
+        llmOutputs.delete(sessionId)
         currentTraceId = null
       }
 

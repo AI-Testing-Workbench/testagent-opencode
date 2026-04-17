@@ -176,13 +176,14 @@ export namespace Skill {
       yield* scan(state, bus, dir, SKILL_PATTERN)
     }
 
-    for (const url of cfg.skills?.urls ?? []) {
-      const pulledDirs = yield* discovery.pull(url)
-      for (const dir of pulledDirs) {
-        state.dirs.add(dir)
-        yield* scan(state, bus, dir, SKILL_PATTERN)
-      }
-    }
+    // testagent_change - remote skill URL fetching disabled
+    // for (const url of cfg.skills?.urls ?? []) {
+    //   const pulledDirs = yield* discovery.pull(url)
+    //   for (const dir of pulledDirs) {
+    //     state.dirs.add(dir)
+    //     yield* scan(state, bus, dir, SKILL_PATTERN)
+    //   }
+    // }
 
     log.info("init", { count: Object.keys(state.skills).length })
   })
