@@ -164,6 +164,12 @@ export namespace Skill {
       yield* scan(state, bus, dir, OPENCODE_SKILL_PATTERN)
     }
 
+    // testagent_change - also scan .testagent directories for skills
+    const testagentDirs = yield* config.testagentDirectories()
+    for (const dir of testagentDirs) {
+      yield* scan(state, bus, dir, OPENCODE_SKILL_PATTERN)
+    }
+
     const cfg = yield* config.get()
     for (const item of cfg.skills?.paths ?? []) {
       const expanded = item.startsWith("~/") ? path.join(os.homedir(), item.slice(2)) : item

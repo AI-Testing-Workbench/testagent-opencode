@@ -1063,6 +1063,7 @@ export namespace Config {
   type State = {
     config: Info
     directories: string[]
+    testagentDirectories: string[] // testagent_change
     deps: Promise<void>[]
     consoleState: ConsoleState
   }
@@ -1075,6 +1076,7 @@ export namespace Config {
     readonly updateGlobal: (config: Info) => Effect.Effect<Info>
     readonly invalidate: (wait?: boolean) => Effect.Effect<void>
     readonly directories: () => Effect.Effect<string[]>
+    readonly testagentDirectories: () => Effect.Effect<string[]> // testagent_change
     readonly waitForDependencies: () => Effect.Effect<void>
   }
 
@@ -1514,6 +1516,7 @@ export namespace Config {
           return {
             config: result,
             directories,
+            testagentDirectories: testagentDirs, // testagent_change
             deps,
             consoleState: {
               consoleManagedProviders: Array.from(consoleManagedProviders),
@@ -1535,6 +1538,11 @@ export namespace Config {
 
         const directories = Effect.fn("Config.directories")(function* () {
           return yield* InstanceState.use(state, (s) => s.directories)
+        })
+
+        // testagent_change
+        const testagentDirectories = Effect.fn("Config.testagentDirectories")(function* () {
+          return yield* InstanceState.use(state, (s) => s.testagentDirectories)
         })
 
         const getConsoleState = Effect.fn("Config.getConsoleState")(function* () {
@@ -1601,6 +1609,7 @@ export namespace Config {
           updateGlobal,
           invalidate,
           directories,
+          testagentDirectories, // testagent_change
           waitForDependencies,
         })
       }),
@@ -1640,6 +1649,11 @@ export namespace Config {
 
   export async function directories() {
     return runPromise((svc) => svc.directories())
+  }
+
+  // testagent_change
+  export async function testagentDirectories() {
+    return runPromise((svc) => svc.testagentDirectories())
   }
 
   export async function waitForDependencies() {
