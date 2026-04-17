@@ -745,14 +745,22 @@ export namespace Session {
     limit?: number
   }) {
     const project = Instance.project
+    // testagent_change - debug logging
+    console.log("[testagent] Session.list called", {
+      input,
+      projectId: project.id,
+      projectWorktree: project.worktree,
+      instanceDirectory: Instance.directory,
+    })
     const conditions = [eq(SessionTable.project_id, project.id)]
 
     if (input?.workspaceID) {
       conditions.push(eq(SessionTable.workspace_id, input.workspaceID))
     }
-    if (input?.directory) {
-      conditions.push(eq(SessionTable.directory, input.directory))
-    }
+    // testagent_change - removed directory filter, project_id is sufficient
+    // if (input?.directory) {
+    //   conditions.push(eq(SessionTable.directory, input.directory))
+    // }
     if (input?.roots) {
       conditions.push(isNull(SessionTable.parent_id))
     }
@@ -774,6 +782,11 @@ export namespace Session {
         .limit(limit)
         .all(),
     )
+    // testagent_change - debug logging
+    console.log("[testagent] Session.list result", {
+      rowCount: rows.length,
+      ids: rows.map((r) => r.id),
+    })
     for (const row of rows) {
       yield fromRow(row)
     }
