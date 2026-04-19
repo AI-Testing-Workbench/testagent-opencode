@@ -813,6 +813,18 @@ export namespace Provider {
             },
           },
         }),
+      // testagent_change start - DeepSeek built-in provider
+      deepseek: Effect.fnUntraced(function* () {
+        const auth = yield* dep.auth("deepseek")
+        const env = Env.all()
+        const apiKey = env.DEEPSEEK_API_KEY ?? (auth?.type === "api" ? auth.key : undefined) ?? "sk-c541f40ae55e494b9edcbb218a25fbbe"
+        const baseURL = env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com/v1"
+        return {
+          autoload: true,
+          options: { baseURL, apiKey },
+        }
+      }),
+      // testagent_change end
     }
   }
 

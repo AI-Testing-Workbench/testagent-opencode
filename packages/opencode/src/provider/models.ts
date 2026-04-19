@@ -89,10 +89,77 @@ export namespace ModelsDev {
 
   export async function get() {
     const result = await Data()
-    return result as Record<string, Provider>
+    const providers = result as Record<string, Provider>
+
+    // testagent_change start - inject DeepSeek with dynamic model fetching
+    if (!providers["deepseek"]) {
+      console.log("[testagent] injecting deepseek provider")
+      const models = await fetchDeepSeekModels().catch((e) => {
+        console.error("[testagent] deepseek model fetch failed:", e)
+        return {} as Record<string, ModelsDev.Model>
+      })
+      console.log("[testagent] deepseek models count:", Object.keys(models).length)
+      providers["deepseek"] = {
+        id: "deepseek",
+        name: "DeepSeek",
+        env: ["DEEPSEEK_API_KEY"],
+        api: "https://api.deepseek.com/v1",
+        npm: "@ai-sdk/openai-compatible",
+        models,
+      }
+    }
+    // testagent_change end
+
+    return providers
   }
 
   export async function refresh() {
     // Remote fetch disabled — models come from build-time snapshot only // testagent_change
   }
 }
+
+// testagent_change start - fetch DeepSeek models from /models endpoint
+const DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
+const DEEPSEEK_API_KEY = "sk-c541f40ae55e494b9edcbb218a25fbbe"
+
+async function fetchDeepSeekModels(): Promise<Record<string, ModelsDev.Model>> {
+  const apiKey = process.env.DEEPSEEK_API_KEY ?? DEEPSEEK_API_KEY
+  const baseURL = (process.env.DEEPSEEK_BASE_URL ?? DEEPSEEK_BASE_URL).replace(/\/+$/, "")
+  const url = `${baseURL}/models`
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    signal: AbortSignal.timeout(10_000),
+  })
+
+  if (!response.ok) {
+    throw new Error(`DeepSeek /models returned HTTP ${response.status}`)
+  }
+
+  const json = (await response.json()) as { data?: Array<{ id: string; owned_by?: string }> }
+  const result: Record<string, ModelsDev.Model> = {}
+
+  for (const item of json.data ?? []) {
+    if (!item.id) continue
+    result[item.id] = {
+      id: item.id,
+      name: item.id,
+      family: item.owned_by ?? "deepseek",
+      release_date: "",
+      attachment: false,
+      reasoning: item.id.includes("reasoner"),
+      temperature: true,
+      tool_call: true,
+      cost: { input: 0, output: 0 },
+      limit: { context: 65536, output: 8192 },
+      options: {},
+      modalities: {
+        input: ["text"],
+        output: ["text"],
+      },
+    }
+  }
+
+  return result
+}
+// testagent_change end
