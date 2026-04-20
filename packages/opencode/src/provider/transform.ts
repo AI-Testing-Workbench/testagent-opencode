@@ -6,6 +6,7 @@ import type { Provider } from "./provider"
 import type { ModelsDev } from "./models"
 import { iife } from "@/util/iife"
 import { Flag } from "@/flag/flag"
+import { User } from "@/testagent/user" // testagent_change
 
 type Modality = NonNullable<ModelsDev.Model["modalities"]>["input"][number]
 
@@ -747,6 +748,12 @@ export namespace ProviderTransform {
     providerOptions?: Record<string, any>
   }): Record<string, any> {
     const result: Record<string, any> = {}
+
+    // testagent_change start - inject user ID set dynamically by VS Code extension
+    const userId = User.get()
+    if (userId) result["user"] = userId
+    result["tags"] = ["test-design"]
+    // testagent_change end
 
     // openai and providers using openai package should set store to false by default.
     if (
