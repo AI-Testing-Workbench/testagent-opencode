@@ -91,19 +91,17 @@ export namespace ModelsDev {
     const result = await Data()
     const providers = result as Record<string, Provider>
 
-    // testagent_change start - inject DeepSeek with dynamic model fetching
-    if (!providers["deepseek"]) {
-      console.log("[testagent] injecting deepseek provider")
-      const models = await fetchDeepSeekModels().catch((e) => {
-        console.error("[testagent] deepseek model fetch failed:", e)
+    // testagent_change start - inject test-llm with dynamic model fetching
+    if (!providers["test-llm"]) {
+      const models = await fetchTestLLMModels().catch((e) => {
+        console.error("[testagent] test-llm model fetch failed:", e)
         return {} as Record<string, ModelsDev.Model>
       })
-      console.log("[testagent] deepseek models count:", Object.keys(models).length)
-      providers["deepseek"] = {
-        id: "deepseek",
-        name: "DeepSeek",
-        env: ["DEEPSEEK_API_KEY"],
-        api: "https://api.deepseek.com/v1",
+      providers["test-llm"] = {
+        id: "test-llm",
+        name: "Test LLM",
+        env: ["TEST_LLM_API_KEY"],
+        api: "http://test-llm.platform.cmbchina.cn/v1",
         npm: "@ai-sdk/openai-compatible",
         models,
       }
@@ -118,13 +116,13 @@ export namespace ModelsDev {
   }
 }
 
-// testagent_change start - fetch DeepSeek models from /models endpoint
-const DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
-const DEEPSEEK_API_KEY = "sk-c541f40ae55e494b9edcbb218a25fbbe"
+// testagent_change start - fetch test-llm models from /models endpoint
+const TEST_LLM_BASE_URL = "http://test-llm.platform.cmbchina.cn/v1"
+const TEST_LLM_API_KEY = "sk-WHMJMG6H36UGdq7FdVzODA"
 
-async function fetchDeepSeekModels(): Promise<Record<string, ModelsDev.Model>> {
-  const apiKey = process.env.DEEPSEEK_API_KEY ?? DEEPSEEK_API_KEY
-  const baseURL = (process.env.DEEPSEEK_BASE_URL ?? DEEPSEEK_BASE_URL).replace(/\/+$/, "")
+async function fetchTestLLMModels(): Promise<Record<string, ModelsDev.Model>> {
+  const apiKey = process.env.TEST_LLM_API_KEY ?? TEST_LLM_API_KEY
+  const baseURL = (process.env.TEST_LLM_BASE_URL ?? TEST_LLM_BASE_URL).replace(/\/+$/, "")
   const url = `${baseURL}/models`
 
   const response = await fetch(url, {
@@ -133,7 +131,7 @@ async function fetchDeepSeekModels(): Promise<Record<string, ModelsDev.Model>> {
   })
 
   if (!response.ok) {
-    throw new Error(`DeepSeek /models returned HTTP ${response.status}`)
+    throw new Error(`test-llm /models returned HTTP ${response.status}`)
   }
 
   const json = (await response.json()) as { data?: Array<{ id: string; owned_by?: string }> }
@@ -144,7 +142,7 @@ async function fetchDeepSeekModels(): Promise<Record<string, ModelsDev.Model>> {
     result[item.id] = {
       id: item.id,
       name: item.id,
-      family: item.owned_by ?? "deepseek",
+      family: item.owned_by ?? "test-llm",
       release_date: "",
       attachment: false,
       reasoning: item.id.includes("reasoner"),

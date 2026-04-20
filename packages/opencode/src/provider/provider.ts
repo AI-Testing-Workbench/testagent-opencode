@@ -813,12 +813,12 @@ export namespace Provider {
             },
           },
         }),
-      // testagent_change start - DeepSeek built-in provider
-      deepseek: Effect.fnUntraced(function* () {
-        const auth = yield* dep.auth("deepseek")
+      // testagent_change start - test-llm built-in provider
+      "test-llm": Effect.fnUntraced(function* () {
+        const auth = yield* dep.auth("test-llm")
         const env = Env.all()
-        const apiKey = env.DEEPSEEK_API_KEY ?? (auth?.type === "api" ? auth.key : undefined) ?? "sk-c541f40ae55e494b9edcbb218a25fbbe"
-        const baseURL = env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com/v1"
+        const apiKey = env.TEST_LLM_API_KEY ?? (auth?.type === "api" ? auth.key : undefined) ?? "sk-WHMJMG6H36UGdq7FdVzODA"
+        const baseURL = env.TEST_LLM_BASE_URL ?? "http://test-llm.platform.cmbchina.cn/v1"
         return {
           autoload: true,
           options: { baseURL, apiKey },
