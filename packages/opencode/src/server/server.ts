@@ -235,7 +235,7 @@ export namespace Server {
       )
       // testagent_change start - endpoint to set current user ID dynamically
       .put(
-        "/testagent/user",
+        "/kilocode/testagent/user",
         validator("json", z.object({ id: z.string().optional() })),
         (c) => {
           User.set(c.req.valid("json").id)
