@@ -19,6 +19,7 @@
     "test": "echo 'do not run tests from root' && exit 1",
     "bun:windows": "bun packages/opencode/script/build.ts --target=win32-x64-baseline --skip-models && mkdir -p ../kilo-vscode/bin/ &&  cp packages/opencode/dist/testagent-windows-x64-baseline/bin/testagent.exe ../kilo-vscode/bin/testagent.exe",
     "bun:windows-skip": "bun packages/opencode/script/build.ts --target=win32-x64-baseline --skip-models --skip-install && mkdir -p ../kilo-vscode/bin/ &&  cp packages/opencode/dist/testagent-windows-x64-baseline/bin/testagent.exe ../kilo-vscode/bin/testagent.exe",
+    "bun:windows-prod": "cross-env OPENCODE_CHANNEL=latest bun packages/opencode/script/build.ts --target=win32-x64-baseline --skip-models && mkdir -p ../kilo-vscode/bin/ &&  cp packages/opencode/dist/testagent-windows-x64-baseline/bin/testagent.exe ../kilo-vscode/bin/testagent.exe",
     "bun:mac": "bun packages/opencode/script/build.ts --target=darwin-x64 --skip-models  && mkdir -p ../kilo-vscode/bin/ &&  cp packages/opencode/dist/testagent-darwin-x64/bin/testagent ../kilo-vscode/bin/testagent",
     "bun:mac-skip": "bun packages/opencode/script/build.ts --target=darwin-x64 --skip-models --skip-install  && mkdir -p ../kilo-vscode/bin/ &&  cp packages/opencode/dist/testagent-darwin-x64/bin/testagent ../kilo-vscode/bin/testagent",
     "bun:debug": "bun --inspect-brk run --cwd packages/opencode --conditions=browser src/index.ts web"
@@ -84,6 +85,7 @@
     "@tsconfig/bun": "catalog:",
     "@types/mime-types": "3.0.1",
     "@typescript/native-preview": "catalog:",
+    "cross-env": "10.1.0",
     "glob": "13.0.5",
     "husky": "9.1.7",
     "prettier": "3.6.2",
