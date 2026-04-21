@@ -15,6 +15,9 @@ import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { Skill } from "@/skill"
+// testagent_change start
+import { staticEnvLines, type EditorContext } from "../testagent/editor-context"
+// testagent_change end
 
 export namespace SystemPrompt {
   export function provider(model: Provider.Model) {
@@ -33,31 +36,39 @@ export namespace SystemPrompt {
     return [PROMPT_DEFAULT]
   }
 
-  export async function environment(model: Provider.Model) {
+  // testagent_change start
+  export async function environment(model: Provider.Model, editorContext?: EditorContext) {
+    console.log("[TestAgent CLI] 🌍 SystemPrompt.environment called")
+    console.log("[TestAgent CLI] 📦 editorContext:", JSON.stringify(editorContext, null, 2))
+    
+    // testagent_change end
     const project = Instance.project
-    return [
-      [
-        `You are powered by the model named ${model.api.id}. The exact model ID is ${model.providerID}/${model.api.id}`,
-        `Here is some useful information about the environment you are running in:`,
-        `<env>`,
-        `  Working directory: ${Instance.directory}`,
-        `  Workspace root folder: ${Instance.worktree}`,
-        `  Is directory a git repo: ${project.vcs === "git" ? "yes" : "no"}`,
-        `  Platform: ${process.platform}`,
-        `  Today's date: ${new Date().toDateString()}`,
-        `</env>`,
-        `<directories>`,
-        `  ${
-          project.vcs === "git" && false
-            ? await Ripgrep.tree({
-                cwd: Instance.directory,
-                limit: 50,
-              })
-            : ""
-        }`,
-        `</directories>`,
-      ].join("\n"),
+    const envLines = [
+      `You are powered by the model named ${model.api.id}. The exact model ID is ${model.providerID}/${model.api.id}`,
+      `Here is some useful information about the environment you are running in:`,
+      `<env>`,
+      `  Working directory: ${Instance.directory}`,
+      `  Workspace root folder: ${Instance.worktree}`,
+      `  Is directory a git repo: ${project.vcs === "git" ? "yes" : "no"}`,
+      `  Platform: ${process.platform}`,
+      `  Today's date: ${new Date().toDateString()}`,
+      ...staticEnvLines(editorContext), // testagent_change
+      `</env>`,
+      `<directories>`,
+      `  ${
+        project.vcs === "git" && false
+          ? await Ripgrep.tree({
+              cwd: Instance.directory,
+              limit: 50,
+            })
+          : ""
+      }`,
+      `</directories>`,
     ]
+    
+    console.log("[TestAgent CLI] 📄 Generated system prompt (first 500 chars):", envLines.join("\n").substring(0, 500))
+    
+    return [envLines.join("\n")]
   }
 
   export async function skills(agent: Agent.Info) {

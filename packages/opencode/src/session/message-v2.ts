@@ -375,6 +375,16 @@ export namespace MessageV2 {
     system: z.string().optional(),
     tools: z.record(z.string(), z.boolean()).optional(),
     variant: z.string().optional(),
+    // testagent_change start
+    editorContext: z
+      .object({
+        visibleFiles: z.array(z.string()).optional(),
+        openTabs: z.array(z.string()).optional(),
+        activeFile: z.string().optional(),
+        shell: z.string().optional(),
+      })
+      .optional(),
+    // testagent_change end
   }).meta({
     ref: "UserMessage",
   })

@@ -28,6 +28,10 @@ import { ReadTool } from "../tool/read"
 import { FileTime } from "../file/time"
 import { Flag } from "../flag/flag"
 import { ulid } from "ulid"
+// testagent_change start
+import { environmentDetails } from "../testagent/editor-context"
+import { Identifier } from "../id/id"
+// testagent_change end
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import * as CrossSpawnSpawner from "@/effect/cross-spawn-spawner"
 import * as Stream from "effect/Stream"
@@ -967,6 +971,11 @@ NOTE: At any point in time through this workflow you should feel free to ask the
             : undefined
         const variant = input.variant ?? (ag.variant && full?.variants?.[ag.variant] ? ag.variant : undefined)
 
+        // testagent_change start - debug log
+        console.log("[TestAgent CLI] 📥 Received PromptInput:")
+        console.log("[TestAgent CLI] 📦 editorContext:", JSON.stringify(input.editorContext, null, 2))
+        // testagent_change end
+
         const info: MessageV2.Info = {
           id: input.messageID ?? MessageID.ascending(),
           role: "user",
@@ -978,7 +987,12 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           system: input.system,
           format: input.format,
           variant,
+          editorContext: input.editorContext, // testagent_change
         }
+
+        // testagent_change start - debug log
+        console.log("[TestAgent CLI] 💾 Created UserMessage with editorContext:", JSON.stringify(info.editorContext, null, 2))
+        // testagent_change end
 
         yield* Effect.addFinalizer(() =>
           InstanceState.withALS(() => instruction.clear(info.id)).pipe(Effect.flatMap((x) => x)),
@@ -1498,9 +1512,41 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 
                 yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
+                // testagent_change start — inject dynamic editor context into last user message
+                console.log("[TestAgent CLI] 🔄 Processing editorContext for prompt generation")
+                console.log("[TestAgent CLI] 📋 lastUser.editorContext:", JSON.stringify(lastUser.editorContext, null, 2))
+                
+                const envBlock = environmentDetails(lastUser.editorContext)
+                console.log("[TestAgent CLI] 📝 Generated environment block:", envBlock ? envBlock.substring(0, 200) + "..." : "null")
+                
+                if (envBlock) {
+                  const lastUserIdx = msgs.findLastIndex((m) => m.info.role === "user")
+                  if (lastUserIdx !== -1) {
+                    console.log("[TestAgent CLI] ✅ Injecting environment block into user message at index:", lastUserIdx)
+                    msgs[lastUserIdx] = {
+                      ...msgs[lastUserIdx],
+                      parts: [
+                        ...msgs[lastUserIdx].parts,
+                        {
+                          id: Identifier.ascending("part"),
+                          sessionID,
+                          messageID: msgs[lastUserIdx].info.id,
+                          type: "text",
+                          text: envBlock,
+                        } satisfies MessageV2.TextPart,
+                      ],
+                    }
+                  } else {
+                    console.log("[TestAgent CLI] ⚠️ Could not find last user message to inject environment block")
+                  }
+                } else {
+                  console.log("[TestAgent CLI] ⚠️ No environment block generated (editorContext might be empty)")
+                }
+                // testagent_change end
+
                 const [skills, env, instructions, modelMsgs] = yield* Effect.all([
                   Effect.promise(() => SystemPrompt.skills(agent)),
-                  Effect.promise(() => SystemPrompt.environment(model)),
+                  Effect.promise(() => SystemPrompt.environment(model, lastUser.editorContext)), // testagent_change
                   instruction.system().pipe(Effect.orDie),
                   Effect.promise(() => MessageV2.toModelMessages(msgs, model)),
                 ])
@@ -1759,6 +1805,16 @@ NOTE: At any point in time through this workflow you should feel free to ask the
     format: MessageV2.Format.optional(),
     system: z.string().optional(),
     variant: z.string().optional(),
+    // testagent_change start
+    editorContext: z
+      .object({
+        visibleFiles: z.array(z.string()).optional(),
+        openTabs: z.array(z.string()).optional(),
+        activeFile: z.string().optional(),
+        shell: z.string().optional(),
+      })
+      .optional(),
+    // testagent_change end
     parts: z.array(
       z.discriminatedUnion("type", [
         MessageV2.TextPart.omit({
