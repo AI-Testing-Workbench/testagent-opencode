@@ -89,11 +89,12 @@ const cli = yargs(args)
     }
 
     await Log.init({
-      print: process.argv.includes("--print-logs") || true, // testagent_change: 默认打印日志
+      print: process.argv.includes("--print-logs"),
       dev: Installation.isLocal(),
       level: (() => {
         if (opts.logLevel) return opts.logLevel as Log.Level
-        return "DEBUG" // testagent_change: 默认DEBUG级别
+        if (Installation.isLocal()) return "DEBUG"
+        return "INFO"
       })(),
     })
 
