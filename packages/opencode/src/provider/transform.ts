@@ -750,8 +750,8 @@ export namespace ProviderTransform {
     const result: Record<string, any> = {}
 
     // testagent_change start - inject user ID set dynamically by VS Code extension
-    const userId = User.get()
-    if (userId) result["user"] = userId
+    const user = User.get()
+    if (user.id) result["user"] = user.id
     result["tags"] = ["test-design"]
     // testagent_change end
 

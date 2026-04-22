@@ -1,13 +1,21 @@
 // testagent - new file
-// Stores the current user ID set by the VS Code extension via HTTP.
+// Stores the current user info set by the VS Code extension via HTTP or env vars.
 
-let current: string | undefined
+interface UserInfo {
+  id?: string
+  name?: string
+}
+
+let current: UserInfo = {
+  id: process.env["TESTAGENT_USER_ID"],
+  name: process.env["TESTAGENT_USER_NAME"],
+}
 
 export const User = {
-  get(): string | undefined {
+  get(): UserInfo {
     return current
   },
-  set(id: string | undefined) {
-    current = id
+  set(info: UserInfo) {
+    current = info
   },
 }
