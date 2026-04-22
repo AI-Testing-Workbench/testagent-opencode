@@ -352,6 +352,7 @@ export namespace Session {
       partID: PartID
       field: string
       delta: string
+      partType?: "text" | "reasoning" | "tool-call" | "tool-result" | "source-url" | "file"
     }) => Effect.Effect<void>
     readonly initialize: (input: {
       sessionID: SessionID
@@ -633,6 +634,7 @@ export namespace Session {
         partID: PartID
         field: string
         delta: string
+        partType?: "text" | "reasoning" | "tool-call" | "tool-result" | "source-url" | "file"
       }) {
         yield* bus.publish(MessageV2.Event.PartDelta, input)
       })
@@ -889,6 +891,7 @@ export namespace Session {
       partID: PartID.zod,
       field: z.string(),
       delta: z.string(),
+      partType: z.enum(["text", "reasoning", "tool-call", "tool-result", "source-url", "file"]).optional(),
     }),
     (input) => runPromise((svc) => svc.updatePartDelta(input)),
   )

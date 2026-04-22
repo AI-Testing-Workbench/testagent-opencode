@@ -501,6 +501,7 @@ export namespace MessageV2 {
         partID: PartID.zod,
         field: z.string(),
         delta: z.string(),
+        partType: z.enum(["text", "reasoning", "tool-call", "tool-result", "source-url", "file"]).optional(),
       }),
     ),
     PartRemoved: SyncEvent.define({

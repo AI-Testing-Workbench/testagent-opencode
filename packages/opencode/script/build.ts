@@ -15,7 +15,7 @@ process.chdir(dir)
 import { Script } from "@opencode-ai/script"
 import pkg from "../package.json"
 // testagent_change - use fixed version instead of Script.version
-const TESTAGENT_VERSION = "1.0.0"
+const TESTAGENT_VERSION = "1.0.1"
 
 // testagent_change start - parse flags early
 // const singleFlag = process.argv.includes("--single")

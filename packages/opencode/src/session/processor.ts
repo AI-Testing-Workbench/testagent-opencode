@@ -138,6 +138,7 @@ export namespace SessionProcessor {
                 partID: ctx.reasoningMap[value.id].id,
                 field: "text",
                 delta: value.text,
+                partType: "reasoning",
               })
               return
 
@@ -334,6 +335,7 @@ export namespace SessionProcessor {
                 partID: ctx.currentText.id,
                 field: "text",
                 delta: value.text,
+                partType: "text",
               })
               return
 
