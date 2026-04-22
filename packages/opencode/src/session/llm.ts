@@ -253,11 +253,27 @@ export namespace LLM {
       }
     }
 
+    // testagent_change start - log gateway request details
+    console.log("[testagent] 🌐 Gateway Request START", {
+      providerID: input.model.providerID,
+      modelID: input.model.id,
+      baseURL: input.model.api.url,
+      sessionID: input.sessionID,
+      messageCount: messages.length,
+      toolCount: Object.keys(tools).length,
+      maxOutputTokens: params.maxOutputTokens,
+    })
+    console.log("[testagent] 📤 Gateway Request Messages:", JSON.stringify(messages, null, 2))
+    // testagent_change end
+
     return streamText({
       onError(error) {
         l.error("stream error", {
           error,
         })
+        // testagent_change start - log gateway error
+        console.error("[testagent] ❌ Gateway Error:", error)
+        // testagent_change end
       },
       async experimental_repairToolCall(failed) {
         const lower = failed.toolCall.toolName.toLowerCase()

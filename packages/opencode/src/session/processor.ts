@@ -132,6 +132,13 @@ export namespace SessionProcessor {
               if (!(value.id in ctx.reasoningMap)) return
               ctx.reasoningMap[value.id].text += value.text
               if (value.providerMetadata) ctx.reasoningMap[value.id].metadata = value.providerMetadata
+              
+              // testagent_change start - log reasoning delta
+              if (ctx.reasoningMap[value.id].text.length < 100) {
+                console.log("[testagent] 🧠 Reasoning Delta:", value.text)
+              }
+              // testagent_change end
+              
               yield* session.updatePartDelta({
                 sessionID: ctx.reasoningMap[value.id].sessionID,
                 messageID: ctx.reasoningMap[value.id].messageID,
@@ -266,6 +273,14 @@ export namespace SessionProcessor {
               return
 
             case "finish-step": {
+              // testagent_change start - log gateway response
+              console.log("[testagent] 📥 Gateway Response:", {
+                finishReason: value.finishReason,
+                usage: value.usage,
+                providerMetadata: value.providerMetadata,
+              })
+              // testagent_change end
+              
               const usage = Session.getUsage({
                 model: ctx.model,
                 usage: value.usage,
@@ -274,6 +289,15 @@ export namespace SessionProcessor {
               ctx.assistantMessage.finish = value.finishReason
               ctx.assistantMessage.cost += usage.cost
               ctx.assistantMessage.tokens = usage.tokens
+              
+              // testagent_change start - log computed usage
+              console.log("[testagent] 💰 Computed Usage:", {
+                tokens: usage.tokens,
+                cost: usage.cost,
+                finish: ctx.assistantMessage.finish,
+              })
+              // testagent_change end
+              
               yield* session.updatePart({
                 id: PartID.ascending(),
                 reason: value.finishReason,
@@ -329,6 +353,13 @@ export namespace SessionProcessor {
               if (!ctx.currentText) return
               ctx.currentText.text += value.text
               if (value.providerMetadata) ctx.currentText.metadata = value.providerMetadata
+              
+              // testagent_change start - log text delta
+              if (ctx.currentText.text.length < 100) {
+                console.log("[testagent] 💬 Text Delta:", value.text)
+              }
+              // testagent_change end
+              
               yield* session.updatePartDelta({
                 sessionID: ctx.currentText.sessionID,
                 messageID: ctx.currentText.messageID,
@@ -342,6 +373,14 @@ export namespace SessionProcessor {
             case "text-end":
               if (!ctx.currentText) return
               ctx.currentText.text = ctx.currentText.text.trimEnd()
+              
+              // testagent_change start - log final text
+              console.log("[testagent] ✅ Text Complete:", {
+                length: ctx.currentText.text.length,
+                preview: ctx.currentText.text.substring(0, 200),
+              })
+              // testagent_change end
+              
               ctx.currentText.text = (yield* plugin.trigger(
                 "experimental.text.complete",
                 {

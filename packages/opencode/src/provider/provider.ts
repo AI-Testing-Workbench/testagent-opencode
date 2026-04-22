@@ -822,7 +822,47 @@ export namespace Provider {
         const baseURL = env.TEST_LLM_BASE_URL ?? "http://test-llm.platform.cmbchina.cn/v1"
         return {
           autoload: true,
-          options: { baseURL, apiKey },
+          options: {
+            baseURL,
+            apiKey,
+            fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+              const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+              const method = init?.method ?? "GET"
+              const headers = init?.headers ? Object.fromEntries(new Headers(init.headers).entries()) : {}
+              const body = init?.body ? (typeof init.body === "string" ? init.body : "[Binary Data]") : undefined
+
+              console.log("[testagent] 🌐 HTTP Request to test-llm gateway:", {
+                url,
+                method,
+                headers,
+                bodyPreview: body ? body.substring(0, 500) : undefined,
+              })
+
+              const startTime = Date.now()
+              const response = await fetch(input, init)
+              const duration = Date.now() - startTime
+
+              // Clone response to read body without consuming it
+              const cloned = response.clone()
+              let responseBody: string | undefined
+              try {
+                const text = await cloned.text()
+                responseBody = text.substring(0, 1000) // First 1000 chars
+              } catch (e) {
+                responseBody = "[Could not read response body]"
+              }
+
+              console.log("[testagent] 📥 HTTP Response from test-llm gateway:", {
+                status: response.status,
+                statusText: response.statusText,
+                headers: Object.fromEntries(response.headers.entries()),
+                duration: `${duration}ms`,
+                bodyPreview: responseBody,
+              })
+
+              return response
+            },
+          },
         }
       }),
       // testagent_change end
