@@ -365,12 +365,12 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
       }
 
       const title = session.title.length > 40 ? session.title.slice(0, 37) + "..." : session.title
-      renderer.setTerminalTitle(`TA | ${title}`)  //testagent_change
+      renderer.setTerminalTitle(`TA | ${title}`) //testagent_change
       return
     }
 
     if (route.data.type === "plugin") {
-      renderer.setTerminalTitle(`TA | ${route.data.id}`)  //testagent_change
+      renderer.setTerminalTitle(`TA | ${route.data.id}`) //testagent_change
     }
   })
 

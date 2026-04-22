@@ -5,6 +5,7 @@
 1. 下载安装 [Inno Setup](https://jrsoftware.org/isdl.php)（免费）
 
 2. 把编译好的 `testagent.exe` 和 `opencode.cmd` 放到项目根目录的 `dist-win/` 文件夹下：
+
    ```
    dist-win/
      testagent.exe

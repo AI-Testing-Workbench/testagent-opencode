@@ -40,7 +40,7 @@ export namespace SystemPrompt {
   export async function environment(model: Provider.Model, editorContext?: EditorContext) {
     console.log("[TestAgent CLI] 🌍 SystemPrompt.environment called")
     console.log("[TestAgent CLI] 📦 editorContext:", JSON.stringify(editorContext, null, 2))
-    
+
     // testagent_change end
     const project = Instance.project
     const envLines = [
@@ -65,9 +65,9 @@ export namespace SystemPrompt {
       }`,
       `</directories>`,
     ]
-    
+
     console.log("[TestAgent CLI] 📄 Generated system prompt (first 500 chars):", envLines.join("\n").substring(0, 500))
-    
+
     return [envLines.join("\n")]
   }
 

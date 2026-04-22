@@ -15,6 +15,9 @@ import { zodToJsonSchema } from "zod-to-json-schema"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
 import { WorkspaceRoutes } from "./workspace"
+import { WorktreeDiff } from "../../testagent/review/worktree-diff" // testagent_change
+import { Snapshot } from "../../snapshot" // testagent_change
+import { Log } from "../../util/log" // testagent_change
 
 const ConsoleOrgOption = z.object({
   accountID: z.string(),
@@ -291,6 +294,118 @@ export const ExperimentalRoutes = lazy(() =>
         return c.json(true)
       },
     )
+    // testagent_change start - worktree diff endpoints
+    .get(
+      "/worktree/diff",
+      describeRoute({
+        summary: "Get worktree diff",
+        description: "Get file diffs for a worktree compared to its base branch. Includes uncommitted changes.",
+        operationId: "worktree.diff",
+        responses: {
+          200: {
+            description: "File diffs",
+            content: {
+              "application/json": {
+                schema: resolver(z.array(Snapshot.FileDiff)),
+              },
+            },
+          },
+          ...errors(400),
+        },
+      }),
+      validator(
+        "query",
+        z.object({
+          base: z.string().optional().meta({ description: "Base branch or ref to diff against" }),
+        }),
+      ),
+      async (c) => {
+        const log = Log.create({ service: "worktree-diff" })
+        const query = c.req.valid("query")
+        const base = query.base || "origin/main"
+        const dir = Instance.directory
+        log.info("computing diff", { dir, base })
+        const diffs = await WorktreeDiff.full({ dir, base, log })
+        return c.json(
+          diffs.map((diff) => ({
+            file: diff.file,
+            before: diff.before,
+            after: diff.after,
+            additions: diff.additions,
+            deletions: diff.deletions,
+            status: diff.status,
+          })),
+        )
+      },
+    )
+    .get(
+      "/worktree/diff/summary",
+      describeRoute({
+        summary: "Get worktree diff summary",
+        description: "Get lightweight file diff metadata for a worktree compared to its base branch.",
+        operationId: "worktree.diffSummary",
+        responses: {
+          200: {
+            description: "Diff summary items",
+            content: {
+              "application/json": {
+                schema: resolver(z.array(WorktreeDiff.Item)),
+              },
+            },
+          },
+          ...errors(400),
+        },
+      }),
+      validator(
+        "query",
+        z.object({
+          base: z.string().optional().meta({ description: "Base branch or ref to diff against" }),
+        }),
+      ),
+      async (c) => {
+        const log = Log.create({ service: "worktree-diff" })
+        const query = c.req.valid("query")
+        const base = query.base || "origin/main"
+        const dir = Instance.directory
+        log.info("computing diff summary", { dir, base })
+        return c.json(await WorktreeDiff.summary({ dir, base, log }))
+      },
+    )
+    .get(
+      "/worktree/diff/file",
+      describeRoute({
+        summary: "Get worktree diff detail",
+        description: "Get full diff contents for one worktree file compared to its base branch.",
+        operationId: "worktree.diffFile",
+        responses: {
+          200: {
+            description: "Diff detail item",
+            content: {
+              "application/json": {
+                schema: resolver(WorktreeDiff.Item.nullable()),
+              },
+            },
+          },
+          ...errors(400),
+        },
+      }),
+      validator(
+        "query",
+        z.object({
+          base: z.string().optional().meta({ description: "Base branch or ref to diff against" }),
+          file: z.string().meta({ description: "Relative file path to load diff contents for" }),
+        }),
+      ),
+      async (c) => {
+        const log = Log.create({ service: "worktree-diff" })
+        const query = c.req.valid("query")
+        const base = query.base || "origin/main"
+        const dir = Instance.directory
+        log.info("computing diff detail", { dir, base, file: query.file })
+        return c.json((await WorktreeDiff.detail({ dir, base, file: query.file, log })) ?? null)
+      },
+    )
+    // testagent_change end
     .get(
       "/session",
       describeRoute({

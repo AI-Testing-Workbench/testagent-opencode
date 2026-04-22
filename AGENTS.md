@@ -127,7 +127,6 @@ const table = sqliteTable("session", {
 
 - Always run `bun typecheck` from package directories (e.g., `packages/opencode`), never `tsc` directly.
 
-
 ## Commit Conventions
 
 [Conventional Commits](https://www.conventionalcommits.org/) with scopes matching packages: `vscode`, `cli`, `agent-manager`, `sdk`, `ui`, `i18n`, `kilo-docs`, `gateway`, `telemetry`, `desktop`. Omit scope when spanning multiple packages.
@@ -139,7 +138,6 @@ This is a fork of [opencode](https://github.com/anomalyco/opencode).
 ### Minimizing Merge Conflicts
 
 We regularly merge upstream changes from opencode. To minimize merge conflicts and keep the sync process smooth:
-
 
 1. **Minimize changes to shared files** - When you must modify files that exist in upstream opencode, keep changes as small and isolated as possible.
 

@@ -817,7 +817,8 @@ export namespace Provider {
       "test-llm": Effect.fnUntraced(function* () {
         const auth = yield* dep.auth("test-llm")
         const env = Env.all()
-        const apiKey = env.TEST_LLM_API_KEY ?? (auth?.type === "api" ? auth.key : undefined) ?? "sk-WHMJMG6H36UGdq7FdVzODA"
+        const apiKey =
+          env.TEST_LLM_API_KEY ?? (auth?.type === "api" ? auth.key : undefined) ?? "sk-WHMJMG6H36UGdq7FdVzODA"
         const baseURL = env.TEST_LLM_BASE_URL ?? "http://test-llm.platform.cmbchina.cn/v1"
         return {
           autoload: true,

@@ -991,7 +991,10 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         }
 
         // testagent_change start - debug log
-        console.log("[TestAgent CLI] 💾 Created UserMessage with editorContext:", JSON.stringify(info.editorContext, null, 2))
+        console.log(
+          "[TestAgent CLI] 💾 Created UserMessage with editorContext:",
+          JSON.stringify(info.editorContext, null, 2),
+        )
         // testagent_change end
 
         yield* Effect.addFinalizer(() =>
@@ -1514,15 +1517,24 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 
                 // testagent_change start — inject dynamic editor context into last user message
                 console.log("[TestAgent CLI] 🔄 Processing editorContext for prompt generation")
-                console.log("[TestAgent CLI] 📋 lastUser.editorContext:", JSON.stringify(lastUser.editorContext, null, 2))
-                
+                console.log(
+                  "[TestAgent CLI] 📋 lastUser.editorContext:",
+                  JSON.stringify(lastUser.editorContext, null, 2),
+                )
+
                 const envBlock = environmentDetails(lastUser.editorContext)
-                console.log("[TestAgent CLI] 📝 Generated environment block:", envBlock ? envBlock.substring(0, 200) + "..." : "null")
-                
+                console.log(
+                  "[TestAgent CLI] 📝 Generated environment block:",
+                  envBlock ? envBlock.substring(0, 200) + "..." : "null",
+                )
+
                 if (envBlock) {
                   const lastUserIdx = msgs.findLastIndex((m) => m.info.role === "user")
                   if (lastUserIdx !== -1) {
-                    console.log("[TestAgent CLI] ✅ Injecting environment block into user message at index:", lastUserIdx)
+                    console.log(
+                      "[TestAgent CLI] ✅ Injecting environment block into user message at index:",
+                      lastUserIdx,
+                    )
                     msgs[lastUserIdx] = {
                       ...msgs[lastUserIdx],
                       parts: [

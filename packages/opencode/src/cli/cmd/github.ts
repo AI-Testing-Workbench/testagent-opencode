@@ -365,10 +365,8 @@ export const GithubInstallCommand = cmd({
               // testagent_change start - removed hardcoded api.opencode.ai
               const baseUrl = process.env["OIDC_BASE_URL"]?.replace(/\/+$/, "")
               if (!baseUrl) throw new Error("OIDC_BASE_URL environment variable is required")
-              return await fetch(
-                `${baseUrl}/get_github_app_installation?owner=${app.owner}&repo=${app.repo}`,
-              )
-              // testagent_change end
+              return await fetch(`${baseUrl}/get_github_app_installation?owner=${app.owner}&repo=${app.repo}`)
+                // testagent_change end
                 .then((res) => res.json())
                 .then((data) => data.installation)
             }

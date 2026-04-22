@@ -235,7 +235,14 @@ export namespace Config {
       })
       if (!md) continue
 
-      const patterns = ["/.opencode/command/", "/.opencode/commands/", "/.testagent/command/", "/.testagent/commands/", "/command/", "/commands/"] // testagent_change
+      const patterns = [
+        "/.opencode/command/",
+        "/.opencode/commands/",
+        "/.testagent/command/",
+        "/.testagent/commands/",
+        "/command/",
+        "/commands/",
+      ] // testagent_change
       const file = rel(item, patterns) ?? path.basename(item)
       const name = trim(file)
 
@@ -274,7 +281,14 @@ export namespace Config {
       })
       if (!md) continue
 
-      const patterns = ["/.opencode/agent/", "/.opencode/agents/", "/.testagent/agent/", "/.testagent/agents/", "/agent/", "/agents/"] // testagent_change
+      const patterns = [
+        "/.opencode/agent/",
+        "/.opencode/agents/",
+        "/.testagent/agent/",
+        "/.testagent/agents/",
+        "/agent/",
+        "/agents/",
+      ] // testagent_change
       const file = rel(item, patterns) ?? path.basename(item)
       const agentName = trim(file)
 
@@ -1083,8 +1097,10 @@ export namespace Config {
   export class Service extends ServiceMap.Service<Service, Interface>()("@opencode/Config") {}
 
   function globalConfigFile() {
-    const candidates = ["testagent.jsonc", "testagent.json", "opencode.jsonc", "opencode.json", "config.json"].map((file) => // testagent_change
-      path.join(Global.Path.config, file),
+    const candidates = ["testagent.jsonc", "testagent.json", "opencode.jsonc", "opencode.json", "config.json"].map(
+      (
+        file, // testagent_change
+      ) => path.join(Global.Path.config, file),
     )
     for (const file of candidates) {
       if (existsSync(file)) return file
@@ -1364,7 +1380,9 @@ export namespace Config {
 
           const directories = yield* Effect.promise(() => ConfigPaths.directories(ctx.directory, ctx.worktree))
           // testagent_change start - append .testagent dirs after .opencode dirs so they load last (higher priority)
-          const testagentDirs = yield* Effect.promise(() => ConfigPaths.testagentDirectories(ctx.directory, ctx.worktree))
+          const testagentDirs = yield* Effect.promise(() =>
+            ConfigPaths.testagentDirectories(ctx.directory, ctx.worktree),
+          )
           const allDirs = [...directories, ...testagentDirs]
           // testagent_change end
 

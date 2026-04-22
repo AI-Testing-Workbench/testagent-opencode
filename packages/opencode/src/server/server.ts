@@ -46,204 +46,202 @@ export namespace Server {
   export const Default = lazy(() => create({}).app)
 
   export function ControlPlaneRoutes(upgrade: UpgradeWebSocket, app = new Hono(), opts?: { cors?: string[] }): Hono {
-    return app
-      .onError(errorHandler(log))
-      .use((c, next) => {
-        // Allow CORS preflight requests to succeed without auth.
-        // Browser clients sending Authorization headers will preflight with OPTIONS.
-        if (c.req.method === "OPTIONS") return next()
-        const password = Flag.OPENCODE_SERVER_PASSWORD
-        if (!password) return next()
-        const username = Flag.OPENCODE_SERVER_USERNAME ?? "opencode"
-        return basicAuth({ username, password })(c, next)
-      })
-      .use(async (c, next) => {
-        const skip = c.req.path === "/log"
-        if (!skip) {
-          log.info("request", {
+    return (
+      app
+        .onError(errorHandler(log))
+        .use((c, next) => {
+          // Allow CORS preflight requests to succeed without auth.
+          // Browser clients sending Authorization headers will preflight with OPTIONS.
+          if (c.req.method === "OPTIONS") return next()
+          const password = Flag.OPENCODE_SERVER_PASSWORD
+          if (!password) return next()
+          const username = Flag.OPENCODE_SERVER_USERNAME ?? "opencode"
+          return basicAuth({ username, password })(c, next)
+        })
+        .use(async (c, next) => {
+          const skip = c.req.path === "/log"
+          if (!skip) {
+            log.info("request", {
+              method: c.req.method,
+              path: c.req.path,
+            })
+          }
+          const timer = log.time("request", {
             method: c.req.method,
             path: c.req.path,
           })
-        }
-        const timer = log.time("request", {
-          method: c.req.method,
-          path: c.req.path,
+          await next()
+          if (!skip) timer.stop()
         })
-        await next()
-        if (!skip) timer.stop()
-      })
-      .use(
-        cors({
-          maxAge: 86_400,
-          origin(input) {
-            if (!input) return
+        .use(
+          cors({
+            maxAge: 86_400,
+            origin(input) {
+              if (!input) return
 
-            if (input.startsWith("http://localhost:")) return input
-            if (input.startsWith("http://127.0.0.1:")) return input
-            if (
-              input === "tauri://localhost" ||
-              input === "http://tauri.localhost" ||
-              input === "https://tauri.localhost"
-            )
-              return input
+              if (input.startsWith("http://localhost:")) return input
+              if (input.startsWith("http://127.0.0.1:")) return input
+              if (
+                input === "tauri://localhost" ||
+                input === "http://tauri.localhost" ||
+                input === "https://tauri.localhost"
+              )
+                return input
 
-            if (/^https:\/\/([a-z0-9-]+\.)*opencode\.ai$/.test(input)) return input
-            if (opts?.cors?.includes(input)) return input
-          },
-        }),
-      )
-      .use((c, next) => {
-        if (skipCompress(c.req.path, c.req.method)) return next()
-        return zipped(c, next)
-      })
-      .route("/global", GlobalRoutes())
-      .put(
-        "/auth/:providerID",
-        describeRoute({
-          summary: "Set auth credentials",
-          description: "Set authentication credentials",
-          operationId: "auth.set",
-          responses: {
-            200: {
-              description: "Successfully set authentication credentials",
-              content: {
-                "application/json": {
-                  schema: resolver(z.boolean()),
+              if (/^https:\/\/([a-z0-9-]+\.)*opencode\.ai$/.test(input)) return input
+              if (opts?.cors?.includes(input)) return input
+            },
+          }),
+        )
+        .use((c, next) => {
+          if (skipCompress(c.req.path, c.req.method)) return next()
+          return zipped(c, next)
+        })
+        .route("/global", GlobalRoutes())
+        .put(
+          "/auth/:providerID",
+          describeRoute({
+            summary: "Set auth credentials",
+            description: "Set authentication credentials",
+            operationId: "auth.set",
+            responses: {
+              200: {
+                description: "Successfully set authentication credentials",
+                content: {
+                  "application/json": {
+                    schema: resolver(z.boolean()),
+                  },
                 },
               },
+              ...errors(400),
             },
-            ...errors(400),
-          },
-        }),
-        validator(
-          "param",
-          z.object({
-            providerID: ProviderID.zod,
           }),
-        ),
-        validator("json", Auth.Info.zod),
-        async (c) => {
-          const providerID = c.req.valid("param").providerID
-          const info = c.req.valid("json")
-          await Auth.set(providerID, info)
-          return c.json(true)
-        },
-      )
-      .delete(
-        "/auth/:providerID",
-        describeRoute({
-          summary: "Remove auth credentials",
-          description: "Remove authentication credentials",
-          operationId: "auth.remove",
-          responses: {
-            200: {
-              description: "Successfully removed authentication credentials",
-              content: {
-                "application/json": {
-                  schema: resolver(z.boolean()),
+          validator(
+            "param",
+            z.object({
+              providerID: ProviderID.zod,
+            }),
+          ),
+          validator("json", Auth.Info.zod),
+          async (c) => {
+            const providerID = c.req.valid("param").providerID
+            const info = c.req.valid("json")
+            await Auth.set(providerID, info)
+            return c.json(true)
+          },
+        )
+        .delete(
+          "/auth/:providerID",
+          describeRoute({
+            summary: "Remove auth credentials",
+            description: "Remove authentication credentials",
+            operationId: "auth.remove",
+            responses: {
+              200: {
+                description: "Successfully removed authentication credentials",
+                content: {
+                  "application/json": {
+                    schema: resolver(z.boolean()),
+                  },
                 },
               },
+              ...errors(400),
             },
-            ...errors(400),
-          },
-        }),
-        validator(
-          "param",
-          z.object({
-            providerID: ProviderID.zod,
           }),
-        ),
-        async (c) => {
-          const providerID = c.req.valid("param").providerID
-          await Auth.remove(providerID)
-          return c.json(true)
-        },
-      )
-      .get(
-        "/doc",
-        openAPIRouteHandler(app, {
-          documentation: {
-            info: {
-              title: "opencode",
-              version: "0.0.3",
-              description: "opencode api",
+          validator(
+            "param",
+            z.object({
+              providerID: ProviderID.zod,
+            }),
+          ),
+          async (c) => {
+            const providerID = c.req.valid("param").providerID
+            await Auth.remove(providerID)
+            return c.json(true)
+          },
+        )
+        .get(
+          "/doc",
+          openAPIRouteHandler(app, {
+            documentation: {
+              info: {
+                title: "opencode",
+                version: "0.0.3",
+                description: "opencode api",
+              },
+              openapi: "3.1.1",
             },
-            openapi: "3.1.1",
-          },
-        }),
-      )
-      .use(
-        validator(
-          "query",
-          z.object({
-            directory: z.string().optional(),
-            workspace: z.string().optional(),
           }),
-        ),
-      )
-      .post(
-        "/log",
-        describeRoute({
-          summary: "Write log",
-          description: "Write a log entry to the server logs with specified level and metadata.",
-          operationId: "app.log",
-          responses: {
-            200: {
-              description: "Log entry written successfully",
-              content: {
-                "application/json": {
-                  schema: resolver(z.boolean()),
+        )
+        .use(
+          validator(
+            "query",
+            z.object({
+              directory: z.string().optional(),
+              workspace: z.string().optional(),
+            }),
+          ),
+        )
+        .post(
+          "/log",
+          describeRoute({
+            summary: "Write log",
+            description: "Write a log entry to the server logs with specified level and metadata.",
+            operationId: "app.log",
+            responses: {
+              200: {
+                description: "Log entry written successfully",
+                content: {
+                  "application/json": {
+                    schema: resolver(z.boolean()),
+                  },
                 },
               },
+              ...errors(400),
             },
-            ...errors(400),
-          },
-        }),
-        validator(
-          "json",
-          z.object({
-            service: z.string().meta({ description: "Service name for the log entry" }),
-            level: z.enum(["debug", "info", "error", "warn"]).meta({ description: "Log level" }),
-            message: z.string().meta({ description: "Log message" }),
-            extra: z
-              .record(z.string(), z.any())
-              .optional()
-              .meta({ description: "Additional metadata for the log entry" }),
           }),
-        ),
-        async (c) => {
-          const { service, level, message, extra } = c.req.valid("json")
-          const logger = Log.create({ service })
+          validator(
+            "json",
+            z.object({
+              service: z.string().meta({ description: "Service name for the log entry" }),
+              level: z.enum(["debug", "info", "error", "warn"]).meta({ description: "Log level" }),
+              message: z.string().meta({ description: "Log message" }),
+              extra: z
+                .record(z.string(), z.any())
+                .optional()
+                .meta({ description: "Additional metadata for the log entry" }),
+            }),
+          ),
+          async (c) => {
+            const { service, level, message, extra } = c.req.valid("json")
+            const logger = Log.create({ service })
 
-          switch (level) {
-            case "debug":
-              logger.debug(message, extra)
-              break
-            case "info":
-              logger.info(message, extra)
-              break
-            case "error":
-              logger.error(message, extra)
-              break
-            case "warn":
-              logger.warn(message, extra)
-              break
-          }
+            switch (level) {
+              case "debug":
+                logger.debug(message, extra)
+                break
+              case "info":
+                logger.info(message, extra)
+                break
+              case "error":
+                logger.error(message, extra)
+                break
+              case "warn":
+                logger.warn(message, extra)
+                break
+            }
 
-          return c.json(true)
-        },
-      )
-      // testagent_change start - endpoint to set current user ID dynamically
-      .put(
-        "/kilocode/testagent/user",
-        validator("json", z.object({ id: z.string().optional() })),
-        (c) => {
+            return c.json(true)
+          },
+        )
+        // testagent_change start - endpoint to set current user ID dynamically
+        .put("/kilocode/testagent/user", validator("json", z.object({ id: z.string().optional() })), (c) => {
           User.set(c.req.valid("json").id)
           return c.json(true)
-        },
-      )
-      // testagent_change end
-      .use(WorkspaceRouterMiddleware(upgrade))
+        })
+        // testagent_change end
+        .use(WorkspaceRouterMiddleware(upgrade))
+    )
   }
 
   function create(opts: { cors?: string[] }) {

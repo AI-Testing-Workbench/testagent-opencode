@@ -9,7 +9,7 @@ const app = "opencode"
 const appTA = "testagent"
 
 const data = path.join(xdgData!, appTA)
-const cache = path.join(xdgCache!, app)   // share opencode cache
+const cache = path.join(xdgCache!, app) // share opencode cache
 const config = path.join(xdgConfig!, appTA)
 const state = path.join(xdgState!, appTA)
 // opencode legacy paths - not auto-created, but read if user creates them manually

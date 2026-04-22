@@ -2,9 +2,7 @@ import { ComponentProps } from "solid-js"
 
 export const Mark = (props: { class?: string }) => {
   // testagent_change
-  return (
-   null
-  )
+  return null
 }
 
 export const Splash = (props: Pick<ComponentProps<"svg">, "ref" | "class">) => {

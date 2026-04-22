@@ -14,9 +14,7 @@ export namespace ConfigPaths {
 
   // testagent_change start - also scan .testagent/ directories for testagent.json
   export async function testagentProjectFiles(directory: string, worktree: string) {
-    const dirs = await Array.fromAsync(
-      Filesystem.up({ targets: [".testagent"], start: directory, stop: worktree }),
-    )
+    const dirs = await Array.fromAsync(Filesystem.up({ targets: [".testagent"], start: directory, stop: worktree }))
     const files: string[] = []
     for (const dir of dirs.toReversed()) {
       for (const file of ["testagent.jsonc", "testagent.json"]) {
