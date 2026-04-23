@@ -26,7 +26,7 @@ export type StoredToken = {
 // Matches TokenResponse in tsCodeAuth/common/tsCodeAuth.ts
 type TokenResponse = {
   returnCode: string
-  body?: StoredToken
+  body?: any
 }
 
 export namespace ExternalAuth {
@@ -118,7 +118,7 @@ export namespace ExternalAuth {
     // 3. Poll relate-token endpoint
     const deadline = Date.now() + timeout
 
-    const poll = async (): Promise<any> => {
+    const poll = async (): Promise<StoredToken> => {
       if (Date.now() >= deadline) {
         spinner.stop("授权超时", 1)
         throw new Error("Authentication timed out — please try again")
