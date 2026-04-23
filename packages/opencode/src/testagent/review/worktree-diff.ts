@@ -143,13 +143,13 @@ export namespace WorktreeDiff {
     // testagent_change start - debug logging
     console.log("[testagent] detailMeta called:", { dir, ancestor: ancestor.substring(0, 12), file })
     // testagent_change end
-    
+
     const tracked = await $`git ls-files --error-unmatch -- ${file}`.cwd(dir).quiet().nothrow()
     if (tracked.exitCode !== 0) {
       // testagent_change start - debug logging
       console.log("[testagent] File not tracked:", file)
       // testagent_change end
-      
+
       const after = Bun.file(path.join(dir, file))
       if (!(await after.exists())) {
         // testagent_change start - debug logging
@@ -207,11 +207,16 @@ export namespace WorktreeDiff {
       : { additions: 0, deletions: 0 }
 
     const status = code === "A" ? "added" : code === "D" ? "deleted" : "modified"
-    
+
     // testagent_change start - debug logging
-    console.log("[testagent] detailMeta result:", { file: pathPart, status, additions: stat.additions, deletions: stat.deletions })
+    console.log("[testagent] detailMeta result:", {
+      file: pathPart,
+      status,
+      additions: stat.additions,
+      deletions: stat.deletions,
+    })
     // testagent_change end
-    
+
     return {
       file: pathPart,
       additions: stat.additions,

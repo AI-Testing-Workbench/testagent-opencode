@@ -235,11 +235,15 @@ export namespace Server {
           },
         )
         // testagent_change start - endpoint to set current user ID dynamically
-        .put("/kilocode/testagent/user", validator("json", z.object({ id: z.string().optional(), name: z.string().optional() })), (c) => {
-          const { id, name } = c.req.valid("json")
-          User.set({ id, name })
-          return c.json(true)
-        })
+        .put(
+          "/kilocode/testagent/user",
+          validator("json", z.object({ id: z.string().optional(), name: z.string().optional() })),
+          (c) => {
+            const { id, name } = c.req.valid("json")
+            User.set({ id, name })
+            return c.json(true)
+          },
+        )
         // testagent_change end
         .use(WorkspaceRouterMiddleware(upgrade))
     )

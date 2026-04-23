@@ -151,7 +151,15 @@ export namespace Plugin {
           if (Flag.OPENCODE_PURE && cfg.plugin_origins?.length) {
             log.info("skipping external plugins in pure mode", { count: cfg.plugin_origins.length })
           }
-          if (plugins.length) yield* config.waitForDependencies()
+          if (plugins.length) {
+            // testagent_change start - notify plugin installation start
+            console.log(`Installing ${plugins.length} plugin${plugins.length > 1 ? "s" : ""}...`)
+            yield* bus.publish(Session.Event.Info, {
+              message: `Installing ${plugins.length} plugin${plugins.length > 1 ? "s" : ""}...`,
+            })
+            // testagent_change end
+            yield* config.waitForDependencies()
+          }
 
           const loaded = yield* Effect.promise(() =>
             PluginLoader.loadExternal({
@@ -159,7 +167,14 @@ export namespace Plugin {
               kind: "server",
               report: {
                 start(candidate) {
-                  log.info("loading plugin", { path: candidate.plan.spec })
+                  // testagent_change start - notify plugin loading start
+                  console.log(`Loading plugin: ${candidate.plan.spec}`)
+                  Effect.runFork(
+                    bus.publish(Session.Event.Info, {
+                      message: `Loading plugin: ${candidate.plan.spec}`,
+                    }),
+                  )
+                  // testagent_change end
                 },
                 missing(candidate, _retry, message) {
                   log.warn("plugin has no server entrypoint", { path: candidate.plan.spec, message })
@@ -194,6 +209,24 @@ export namespace Plugin {
               },
             }),
           )
+          // testagent_change start - notify plugin loading completion
+          const successCount = loaded.filter((l) => l !== undefined).length
+          const failedCount = plugins.length - successCount
+          if (successCount > 0) {
+            console.log(`✓ Successfully loaded ${successCount} plugin${successCount > 1 ? "s" : ""}${failedCount > 0 ? ` (${failedCount} failed)` : ""}`)
+            yield* bus.publish(Session.Event.Info, {
+              message: `✓ Successfully loaded ${successCount} plugin${successCount > 1 ? "s" : ""}${failedCount > 0 ? ` (${failedCount} failed)` : ""}`,
+            })
+          }
+          if (failedCount === plugins.length && plugins.length > 0) {
+            console.error(`Failed to load all ${failedCount} plugin${failedCount > 1 ? "s" : ""}. Check the logs for details.`)
+            yield* bus.publish(Session.Event.Error, {
+              error: new NamedError.Unknown({
+                message: `Failed to load all ${failedCount} plugin${failedCount > 1 ? "s" : ""}. Check the logs for details.`,
+              }).toObject(),
+            })
+          }
+          // testagent_change end
           for (const load of loaded) {
             if (!load) continue
 

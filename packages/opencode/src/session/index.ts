@@ -233,6 +233,15 @@ export namespace Session {
         error: MessageV2.Assistant.shape.error,
       }),
     ),
+    // testagent_change start - add Info event for informational messages
+    Info: BusEvent.define(
+      "session.info",
+      z.object({
+        sessionID: SessionID.zod.optional(),
+        message: z.string(),
+      }),
+    ),
+    // testagent_change end
   }
 
   export function plan(input: { slug: string; time: { created: number } }) {

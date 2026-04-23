@@ -74,7 +74,10 @@ describe("WorkflowsMigrator", () => {
             path.join(dir, ".testagent", "workflows", "code-review.md"),
             "# Code Review\n\nReview the code",
           )
-          await Filesystem.write(path.join(dir, ".testagent", "workflows", "refactor.md"), "# Refactor\n\nRefactor code")
+          await Filesystem.write(
+            path.join(dir, ".testagent", "workflows", "refactor.md"),
+            "# Refactor\n\nRefactor code",
+          )
         },
       })
 

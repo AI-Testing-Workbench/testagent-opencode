@@ -1306,6 +1306,26 @@ export namespace Config {
           const auth = yield* authSvc.all().pipe(Effect.orDie)
 
           let result: Info = {}
+
+          // testagent_change start - load testagent workflows as commands (legacy config, lowest precedence)
+          try {
+            const workflowsMigration = yield* Effect.promise(() =>
+              WorkflowsMigrator.migrate({ projectDir: ctx.directory, skipGlobalPaths: false }),
+            )
+            if (Object.keys(workflowsMigration.commands).length > 0) {
+              result = mergeConfigConcatArrays(result, { command: workflowsMigration.commands })
+              log.debug("loaded testagent workflows as commands", {
+                count: Object.keys(workflowsMigration.commands).length,
+                commands: Object.keys(workflowsMigration.commands),
+              })
+            }
+            for (const warning of workflowsMigration.warnings) {
+              log.warn("workflow migration warning", { warning })
+            }
+          } catch (err) {
+            log.warn("failed to load testagent workflows", { error: err })
+          }
+          // testagent_change end
           const consoleManagedProviders = new Set<string>()
           let activeOrgName: string | undefined
 
@@ -1427,17 +1447,6 @@ export namespace Config {
             deps.push(dep)
 
             result.command = mergeDeep(result.command ?? {}, yield* Effect.promise(() => loadCommand(dir)))
-            // testagent_change start - migrate workflows from .testagent/workflows/
-            if (dir.endsWith(".testagent")) {
-              const workflowsMigration = yield* Effect.promise(() =>
-                WorkflowsMigrator.migrate({ projectDir: ctx.worktree, skipGlobalPaths: false }),
-              )
-              result.command = mergeDeep(result.command ?? {}, workflowsMigration.commands)
-              for (const warning of workflowsMigration.warnings) {
-                log.warn("workflow migration warning", { warning })
-              }
-            }
-            // testagent_change end
             result.agent = mergeDeep(result.agent, yield* Effect.promise(() => loadAgent(dir)))
             result.agent = mergeDeep(result.agent, yield* Effect.promise(() => loadMode(dir)))
             const list = yield* Effect.promise(() => loadPlugin(dir))

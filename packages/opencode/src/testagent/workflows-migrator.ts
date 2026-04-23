@@ -27,7 +27,15 @@ export namespace WorkflowsMigrator {
     const homeDir = home()
     switch (process.platform) {
       case "darwin":
-        return path.join(homeDir, "Library", "Application Support", "Code", "User", "globalStorage", "testagent.testagent-vscode")
+        return path.join(
+          homeDir,
+          "Library",
+          "Application Support",
+          "Code",
+          "User",
+          "globalStorage",
+          "testagent.testagent-vscode",
+        )
       case "win32":
         return path.join(
           process.env.APPDATA || path.join(homeDir, "AppData", "Roaming"),
