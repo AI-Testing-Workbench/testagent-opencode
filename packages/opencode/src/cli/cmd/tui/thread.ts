@@ -16,6 +16,7 @@ import { win32DisableProcessedInput, win32InstallCtrlCGuard } from "./win32"
 import { TuiConfig } from "@/config/tui"
 import { Instance } from "@/project/instance"
 import { writeHeapSnapshot } from "v8"
+import { ExternalAuth } from "@/external-auth" // testagent_change
 
 declare global {
   const OPENCODE_WORKER_PATH: string
@@ -114,6 +115,22 @@ export const TuiThreadCommand = cmd({
         process.exitCode = 1
         return
       }
+
+      // testagent_change start - external auth check
+      try {
+        const user = await ExternalAuth.ensureAuthenticated()
+        // Write user info to env so worker thread can read it at plugin init time
+        process.env.TESTAGENT_USER_ID   = user.userId ?? ""
+        process.env.TESTAGENT_USER_NAME = user.userName   ?? ""
+        // Also store in User module so other parts of the CLI can access it
+        const { User } = await import("@/testagent/user")
+        User.set({ id: user.userId, name: user.userName })
+      } catch (err) {
+        UI.error(err instanceof Error ? err.message : String(err))
+        process.exitCode = 1
+        return
+      }
+      // testagent_change end
 
       // Resolve relative --project paths from PWD, then use the real cwd after
       // chdir so the thread and worker share the same directory key.

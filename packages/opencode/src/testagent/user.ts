@@ -6,16 +6,19 @@ interface UserInfo {
   name?: string
 }
 
-let current: UserInfo = {
-  id: process.env["TESTAGENT_USER_ID"],
-  name: process.env["TESTAGENT_USER_NAME"],
-}
+let override: UserInfo | undefined
 
 export const User = {
   get(): UserInfo {
-    return current
+    // override takes precedence (set by VS Code extension via HTTP)
+    if (override?.id) return override
+    // fall back to env vars written by thread.ts after external auth
+    return {
+      id: process.env["TESTAGENT_USER_ID"],
+      name: process.env["TESTAGENT_USER_NAME"],
+    }
   },
   set(info: UserInfo) {
-    current = info
+    override = info
   },
 }

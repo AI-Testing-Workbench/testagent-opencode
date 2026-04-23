@@ -10,12 +10,16 @@
  * - Token and cost tracking (if available via events)
  * - Isolated traces for each conversation turn
  */
+console.log("[langfuse] Loading...")
 
 import { Plugin } from "@opencode-ai/plugin"
-import { readFileSync, existsSync } from "fs"
+import { User } from "@/testagent/user"
+import LangfuseClient from "langfuse"
 declare const LANGFUSE_ENV: string
 
 // ==================== 配置加载 ====================
+
+const embeddedEnv = LANGFUSE_ENV || ""
 
 /**
  * 从 .env 文件加载环境变量
@@ -41,64 +45,27 @@ function loadEnv(content: string): Record<string, string> {
   return env
 }
 
-// ==================== Langfuse 客户端初始化 ====================
+const envConfig = loadEnv(embeddedEnv ?? "")
 
-// Singleton to ensure only one initialization across all imports
-let langfuse: any = null
-let initPromise: Promise<void> | null = null
-
-async function ensureLangfuseClient() {
-  // If already initialized, return immediately
-  if (langfuse) return
-
-  // If initialization is in progress, wait for it
-  if (initPromise) {
-    await initPromise
-    return
-  }
-
-  // Start initialization
-  initPromise = (async () => {
-    console.log("[langfuse] Loading...")
-
-    const embeddedEnv = LANGFUSE_ENV || ""
-    const envConfig = loadEnv(embeddedEnv ?? "")
-
-    // 配置 Langfuse 连接信息
-    const config = {
-      publicKey: process.env.LANGFUSE_PUBLIC_KEY ?? envConfig.LANGFUSE_PUBLIC_KEY,
-      secretKey: process.env.LANGFUSE_SECRET_KEY ?? envConfig.LANGFUSE_SECRET_KEY,
-      baseUrl:
-        process.env.LANGFUSE_BASE_URL ??
-        envConfig.LANGFUSE_BASE_URL ??
-        "https://testhub-agent-trace-dev.paas.cmbchina.cn",
-    }
-
-    console.log("[langfuse] Debug:", {
-      embeddedEnv: embeddedEnv ? "present" : "absent",
-      envConfigKeys: ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"],
-    })
-    console.log("[langfuse] Config:", {
-      hasPK: !!config.publicKey,
-      hasSK: !!config.secretKey,
-    })
-
-    try {
-      const { default: Langfuse } = await import("langfuse")
-      langfuse = new Langfuse({
-        publicKey: config.publicKey,
-        secretKey: config.secretKey,
-        baseUrl: config.baseUrl,
-        flushAt: 1, // 每次调用立即刷新
-      })
-      console.log("[langfuse] Client initialized")
-    } catch (e) {
-      console.log("[langfuse] Failed:", e)
-    }
-  })()
-
-  await initPromise
+// 配置 Langfuse 连接信息
+const config = {
+  publicKey: process.env.LANGFUSE_PUBLIC_KEY ?? envConfig.LANGFUSE_PUBLIC_KEY,
+  secretKey: process.env.LANGFUSE_SECRET_KEY ?? envConfig.LANGFUSE_SECRET_KEY,
+  baseUrl:
+    process.env.LANGFUSE_BASE_URL ?? envConfig.LANGFUSE_BASE_URL ?? "https://testhub-agent-trace-dev.paas.cmbchina.cn",
 }
+
+console.log("[langfuse] Debug:", {
+  embeddedEnv: embeddedEnv ? "present" : "absent",
+  envConfigKeys: ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"],
+})
+console.log("[langfuse] Config:", {
+  hasPK: !!config.publicKey,
+  hasSK: !!config.secretKey,
+})
+
+// ==================== Langfuse 客户端初始化 ====================
+// 客户端在插件启动时（LangfusePlugin 函数内）初始化，此时用户已登录
 
 // ==================== 会话管理 ====================
 
@@ -249,10 +216,8 @@ function sanitize(input: any): any {
 /**
  * 刷新 Langfuse 数据到服务器
  */
-function flush() {
-  if (langfuse?.flush) {
-    langfuse.flush()
-  }
+function flush(langfuse: any) {
+  langfuse?.flush?.()
 }
 
 /**
@@ -275,7 +240,7 @@ function generateUUID(): string {
  * @param traceId Trace ID
  * @returns Langfuse Trace 对象
  */
-function createNewTrace(sessionId: string, input: string, ctx: any, traceId: string) {
+function createNewTrace(langfuse: any, sessionId: string, input: string, ctx: any, traceId: string) {
   if (!langfuse) return null
 
   const traceName = input.length > 100 ? input.slice(0, 100) + "..." : input
@@ -666,8 +631,28 @@ function buildLLMInput(messages: any[], system: string[], tools: any[]): { json:
 // ==================== 插件主逻辑 ====================
 
 export const LangfusePlugin: Plugin = async (ctx) => {
-  // Ensure client is initialized only once
-  await ensureLangfuseClient()
+  console.log("[langfuse] Plugin started")
+
+  // 插件启动时初始化 Langfuse 客户端，此时用户已登录
+  const user = User.get()
+  const pk = user.id ? `pk-${user.id}` : config.publicKey
+  const sk = user.id ? `sk-${user.id}` : config.secretKey
+  console.log("[langfuse] init", { userId: user.id, userName: user.name, hasPK: !!pk, hasSK: !!sk })
+
+  let langfuse: any = null
+  if (pk && sk) {
+    try {
+      langfuse = new LangfuseClient({
+        publicKey: pk,
+        secretKey: sk,
+        baseUrl: config.baseUrl,
+        flushAt: 1,
+      })
+      console.log("[langfuse] Client initialized", { userId: user.id, userName: user.name })
+    } catch (e) {
+      console.log("[langfuse] Failed:", e)
+    }
+  }
 
   return {
     /**
@@ -694,7 +679,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
       messageCounter.set(sessionId, count)
 
       // 创建新的 Trace
-      const trace = createNewTrace(sessionId, textContent || input.message?.content || "message", ctx, traceId)
+      const trace = createNewTrace(langfuse, sessionId, textContent || input.message?.content || "message", ctx, traceId)
 
       // 更新 Trace 元数据 - 添加完整的 input 和 output
       if (trace) {
@@ -901,7 +886,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
       // 确保 Trace 存在
       let trace = traces.get(traceId)
       if (!trace && langfuse) {
-        trace = createNewTrace(sessionId, userInputs.get(sessionId) || "tool execution", ctx, traceId)
+        trace = createNewTrace(langfuse, sessionId, userInputs.get(sessionId) || "tool execution", ctx, traceId)
       }
 
       if (trace) {
@@ -974,7 +959,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
         }
       }
 
-      flush()
+      flush(langfuse)
     },
 
     /**
@@ -1008,7 +993,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
 
       // 服务器实例销毁时，刷新数据
       if (evt.type === "server.instance.disposed") {
-        flush()
+        flush(langfuse)
         return
       }
 
@@ -1208,7 +1193,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
           trace.update({ output: finalText })
         }
 
-        flush()
+        flush(langfuse)
 
         // 清理所有相关数据
         for (let i = 1; i <= count; i++) {
@@ -1244,7 +1229,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
             trace.update({ metadata: { error: evt.error?.message } })
           }
         }
-        flush()
+        flush(langfuse)
       }
     },
   }
