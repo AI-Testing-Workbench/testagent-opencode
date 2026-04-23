@@ -10,15 +10,12 @@
  * - Token and cost tracking (if available via events)
  * - Isolated traces for each conversation turn
  */
-console.log("[langfuse] Loading...")
 
 import { Plugin } from "@opencode-ai/plugin"
 import { readFileSync, existsSync } from "fs"
 declare const LANGFUSE_ENV: string
 
 // ==================== 配置加载 ====================
-
-const embeddedEnv = LANGFUSE_ENV || ""
 
 /**
  * 从 .env 文件加载环境变量
@@ -44,41 +41,63 @@ function loadEnv(content: string): Record<string, string> {
   return env
 }
 
-const envConfig = loadEnv(embeddedEnv ?? "")
-
-// 配置 Langfuse 连接信息
-const config = {
-  publicKey: process.env.LANGFUSE_PUBLIC_KEY ?? envConfig.LANGFUSE_PUBLIC_KEY,
-  secretKey: process.env.LANGFUSE_SECRET_KEY ?? envConfig.LANGFUSE_SECRET_KEY,
-  baseUrl:
-    process.env.LANGFUSE_BASE_URL ?? envConfig.LANGFUSE_BASE_URL ?? "https://testhub-agent-trace-dev.paas.cmbchina.cn",
-}
-
-console.log("[langfuse] Loading...")
-console.log("[langfuse] Debug:", {
-  embeddedEnv: embeddedEnv ? "present" : "absent",
-  envConfigKeys: ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"],
-})
-console.log("[langfuse] Config:", {
-  hasPK: !!config.publicKey,
-  hasSK: !!config.secretKey,
-})
-
 // ==================== Langfuse 客户端初始化 ====================
 
+// Singleton to ensure only one initialization across all imports
 let langfuse: any = null
+let initPromise: Promise<void> | null = null
 
-try {
-  const { default: Langfuse } = await import("langfuse")
-  langfuse = new Langfuse({
-    publicKey: config.publicKey,
-    secretKey: config.secretKey,
-    baseUrl: config.baseUrl,
-    flushAt: 1, // 每次调用立即刷新
-  })
-  console.log("[langfuse] Client initialized")
-} catch (e) {
-  console.log("[langfuse] Failed:", e)
+async function ensureLangfuseClient() {
+  // If already initialized, return immediately
+  if (langfuse) return
+
+  // If initialization is in progress, wait for it
+  if (initPromise) {
+    await initPromise
+    return
+  }
+
+  // Start initialization
+  initPromise = (async () => {
+    console.log("[langfuse] Loading...")
+
+    const embeddedEnv = LANGFUSE_ENV || ""
+    const envConfig = loadEnv(embeddedEnv ?? "")
+
+    // 配置 Langfuse 连接信息
+    const config = {
+      publicKey: process.env.LANGFUSE_PUBLIC_KEY ?? envConfig.LANGFUSE_PUBLIC_KEY,
+      secretKey: process.env.LANGFUSE_SECRET_KEY ?? envConfig.LANGFUSE_SECRET_KEY,
+      baseUrl:
+        process.env.LANGFUSE_BASE_URL ??
+        envConfig.LANGFUSE_BASE_URL ??
+        "https://testhub-agent-trace-dev.paas.cmbchina.cn",
+    }
+
+    console.log("[langfuse] Debug:", {
+      embeddedEnv: embeddedEnv ? "present" : "absent",
+      envConfigKeys: ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"],
+    })
+    console.log("[langfuse] Config:", {
+      hasPK: !!config.publicKey,
+      hasSK: !!config.secretKey,
+    })
+
+    try {
+      const { default: Langfuse } = await import("langfuse")
+      langfuse = new Langfuse({
+        publicKey: config.publicKey,
+        secretKey: config.secretKey,
+        baseUrl: config.baseUrl,
+        flushAt: 1, // 每次调用立即刷新
+      })
+      console.log("[langfuse] Client initialized")
+    } catch (e) {
+      console.log("[langfuse] Failed:", e)
+    }
+  })()
+
+  await initPromise
 }
 
 // ==================== 会话管理 ====================
@@ -647,7 +666,8 @@ function buildLLMInput(messages: any[], system: string[], tools: any[]): { json:
 // ==================== 插件主逻辑 ====================
 
 export const LangfusePlugin: Plugin = async (ctx) => {
-  console.log("[langfuse] Plugin started")
+  // Ensure client is initialized only once
+  await ensureLangfuseClient()
 
   return {
     /**

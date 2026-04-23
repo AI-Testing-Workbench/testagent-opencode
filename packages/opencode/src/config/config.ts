@@ -41,6 +41,9 @@ import { Duration, Effect, Layer, Option, ServiceMap } from "effect"
 import { Flock } from "@/util/flock"
 import { isPathPluginSpec, parsePluginSpecifier, resolvePathPluginTarget } from "@/plugin/shared"
 import { Npm } from "@/npm"
+// testagent_change start - import workflows migrator
+import { WorkflowsMigrator } from "../testagent/workflows-migrator"
+// testagent_change end
 
 export namespace Config {
   const ModelId = z.string().meta({ $ref: "https://models.dev/model-schema.json#/$defs/Model" })
@@ -1424,6 +1427,17 @@ export namespace Config {
             deps.push(dep)
 
             result.command = mergeDeep(result.command ?? {}, yield* Effect.promise(() => loadCommand(dir)))
+            // testagent_change start - migrate workflows from .testagent/workflows/
+            if (dir.endsWith(".testagent")) {
+              const workflowsMigration = yield* Effect.promise(() =>
+                WorkflowsMigrator.migrate({ projectDir: ctx.worktree, skipGlobalPaths: false }),
+              )
+              result.command = mergeDeep(result.command ?? {}, workflowsMigration.commands)
+              for (const warning of workflowsMigration.warnings) {
+                log.warn("workflow migration warning", { warning })
+              }
+            }
+            // testagent_change end
             result.agent = mergeDeep(result.agent, yield* Effect.promise(() => loadAgent(dir)))
             result.agent = mergeDeep(result.agent, yield* Effect.promise(() => loadMode(dir)))
             const list = yield* Effect.promise(() => loadPlugin(dir))
