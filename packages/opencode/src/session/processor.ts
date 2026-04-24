@@ -135,7 +135,7 @@ export namespace SessionProcessor {
 
               // testagent_change start - log reasoning delta
               if (ctx.reasoningMap[value.id].text.length < 100) {
-                console.log("[testagent] 🧠 Reasoning Delta:", value.text)
+                log.debug("reasoning delta", { text: value.text })
               }
               // testagent_change end
 
@@ -274,7 +274,7 @@ export namespace SessionProcessor {
 
             case "finish-step": {
               // testagent_change start - log gateway response
-              console.log("[testagent] 📥 Gateway Response:", {
+              log.debug("gateway response", {
                 finishReason: value.finishReason,
                 usage: value.usage,
                 providerMetadata: value.providerMetadata,
@@ -291,7 +291,7 @@ export namespace SessionProcessor {
               ctx.assistantMessage.tokens = usage.tokens
 
               // testagent_change start - log computed usage
-              console.log("[testagent] 💰 Computed Usage:", {
+              log.debug("computed usage", {
                 tokens: usage.tokens,
                 cost: usage.cost,
                 finish: ctx.assistantMessage.finish,
@@ -356,7 +356,7 @@ export namespace SessionProcessor {
 
               // testagent_change start - log text delta
               if (ctx.currentText.text.length < 100) {
-                console.log("[testagent] 💬 Text Delta:", value.text)
+                log.debug("text delta", { text: value.text })
               }
               // testagent_change end
 
@@ -375,7 +375,7 @@ export namespace SessionProcessor {
               ctx.currentText.text = ctx.currentText.text.trimEnd()
 
               // testagent_change start - log final text
-              console.log("[testagent] ✅ Text Complete:", {
+              log.debug("text complete", {
                 length: ctx.currentText.text.length,
                 preview: ctx.currentText.text.substring(0, 200),
               })

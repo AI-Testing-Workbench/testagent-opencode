@@ -757,7 +757,7 @@ export namespace Session {
   }) {
     const project = Instance.project
     // testagent_change - debug logging
-    console.log("[testagent] Session.list called", {
+    log.debug("session list called", {
       input,
       projectId: project.id,
       projectWorktree: project.worktree,
@@ -794,7 +794,7 @@ export namespace Session {
         .all(),
     )
     // testagent_change - debug logging
-    console.log("[testagent] Session.list result", {
+    log.debug("session list result", {
       rowCount: rows.length,
       ids: rows.map((r) => r.id),
     })

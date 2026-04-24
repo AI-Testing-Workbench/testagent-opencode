@@ -972,8 +972,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         const variant = input.variant ?? (ag.variant && full?.variants?.[ag.variant] ? ag.variant : undefined)
 
         // testagent_change start - debug log
-        console.log("[TestAgent CLI] 📥 Received PromptInput:")
-        console.log("[TestAgent CLI] 📦 editorContext:", JSON.stringify(input.editorContext, null, 2))
+        log.debug("received prompt input", { editorContext: JSON.stringify(input.editorContext, null, 2) })
         // testagent_change end
 
         const info: MessageV2.Info = {
@@ -991,10 +990,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         }
 
         // testagent_change start - debug log
-        console.log(
-          "[TestAgent CLI] 💾 Created UserMessage with editorContext:",
-          JSON.stringify(info.editorContext, null, 2),
-        )
+        log.debug("created user message", { editorContext: JSON.stringify(info.editorContext, null, 2) })
         // testagent_change end
 
         yield* Effect.addFinalizer(() =>
@@ -1516,25 +1512,19 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                 yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
 
                 // testagent_change start — inject dynamic editor context into last user message
-                console.log("[TestAgent CLI] 🔄 Processing editorContext for prompt generation")
-                console.log(
-                  "[TestAgent CLI] 📋 lastUser.editorContext:",
-                  JSON.stringify(lastUser.editorContext, null, 2),
-                )
+                log.debug("processing editor context", {
+                  editorContext: JSON.stringify(lastUser.editorContext, null, 2),
+                })
 
                 const envBlock = environmentDetails(lastUser.editorContext)
-                console.log(
-                  "[TestAgent CLI] 📝 Generated environment block:",
-                  envBlock ? envBlock.substring(0, 200) + "..." : "null",
-                )
+                log.debug("generated environment block", {
+                  preview: envBlock ? envBlock.substring(0, 200) + "..." : "null",
+                })
 
                 if (envBlock) {
                   const lastUserIdx = msgs.findLastIndex((m) => m.info.role === "user")
                   if (lastUserIdx !== -1) {
-                    console.log(
-                      "[TestAgent CLI] ✅ Injecting environment block into user message at index:",
-                      lastUserIdx,
-                    )
+                    log.debug("injecting environment block", { index: lastUserIdx })
                     msgs[lastUserIdx] = {
                       ...msgs[lastUserIdx],
                       parts: [
@@ -1549,10 +1539,10 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                       ],
                     }
                   } else {
-                    console.log("[TestAgent CLI] ⚠️ Could not find last user message to inject environment block")
+                    log.warn("could not find last user message to inject environment block")
                   }
                 } else {
-                  console.log("[TestAgent CLI] ⚠️ No environment block generated (editorContext might be empty)")
+                  log.warn("no environment block generated (editorContext might be empty)")
                 }
                 // testagent_change end
 

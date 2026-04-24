@@ -254,7 +254,7 @@ export namespace LLM {
     }
 
     // testagent_change start - log gateway request details
-    console.log("[testagent] 🌐 Gateway Request START", {
+    log.debug("gateway request start", {
       providerID: input.model.providerID,
       modelID: input.model.id,
       baseURL: input.model.api.url,
@@ -262,8 +262,8 @@ export namespace LLM {
       messageCount: messages.length,
       toolCount: Object.keys(tools).length,
       maxOutputTokens: params.maxOutputTokens,
+      messages: JSON.stringify(messages, null, 2),
     })
-    console.log("[testagent] 📤 Gateway Request Messages:", JSON.stringify(messages, null, 2))
     // testagent_change end
 
     return streamText({
@@ -272,7 +272,7 @@ export namespace LLM {
           error,
         })
         // testagent_change start - log gateway error
-        console.error("[testagent] ❌ Gateway Error:", error)
+        log.error("gateway error", { error })
         // testagent_change end
       },
       async experimental_repairToolCall(failed) {

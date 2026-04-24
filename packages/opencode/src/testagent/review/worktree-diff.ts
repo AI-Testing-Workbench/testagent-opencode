@@ -8,6 +8,8 @@ import { FileIgnore } from "@/file/ignore"
 import { Snapshot } from "@/snapshot"
 import { Log } from "@/util/log"
 
+const log = Log.create({ service: "worktree-diff" }) // testagent_change
+
 export namespace WorktreeDiff {
   export const Item = Snapshot.FileDiff.extend({
     before: z.string(),
@@ -141,19 +143,19 @@ export namespace WorktreeDiff {
 
   async function detailMeta(dir: string, ancestor: string, file: string): Promise<Meta | undefined> {
     // testagent_change start - debug logging
-    console.log("[testagent] detailMeta called:", { dir, ancestor: ancestor.substring(0, 12), file })
+    log.debug("detailMeta called", { dir, ancestor: ancestor.substring(0, 12), file })
     // testagent_change end
 
     const tracked = await $`git ls-files --error-unmatch -- ${file}`.cwd(dir).quiet().nothrow()
     if (tracked.exitCode !== 0) {
       // testagent_change start - debug logging
-      console.log("[testagent] File not tracked:", file)
+      log.debug("file not tracked", { file })
       // testagent_change end
 
       const after = Bun.file(path.join(dir, file))
       if (!(await after.exists())) {
         // testagent_change start - debug logging
-        console.log("[testagent] File does not exist:", file)
+        log.debug("file does not exist", { file })
         // testagent_change end
         return undefined
       }
@@ -174,14 +176,14 @@ export namespace WorktreeDiff {
       .nothrow()
     if (nameStatus.exitCode !== 0) {
       // testagent_change start - debug logging
-      console.log("[testagent] git diff --name-status failed:", nameStatus.exitCode, nameStatus.stderr.toString())
+      log.debug("git diff failed", { exitCode: nameStatus.exitCode, stderr: nameStatus.stderr.toString() })
       // testagent_change end
       return undefined
     }
     const line = nameStatus.stdout.toString().trim().split("\n")[0]
     if (!line) {
       // testagent_change start - debug logging
-      console.log("[testagent] No diff output for file:", file)
+      log.debug("no diff output for file", { file })
       // testagent_change end
       return undefined
     }
@@ -209,7 +211,7 @@ export namespace WorktreeDiff {
     const status = code === "A" ? "added" : code === "D" ? "deleted" : "modified"
 
     // testagent_change start - debug logging
-    console.log("[testagent] detailMeta result:", {
+    log.debug("detailMeta result", {
       file: pathPart,
       status,
       additions: stat.additions,

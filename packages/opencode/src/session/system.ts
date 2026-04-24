@@ -15,6 +15,7 @@ import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { Skill } from "@/skill"
+import { Log } from "@/util/log" // testagent_change
 // testagent_change start
 import { staticEnvLines, type EditorContext } from "../testagent/editor-context"
 // testagent_change end
@@ -37,9 +38,9 @@ export namespace SystemPrompt {
   }
 
   // testagent_change start
+  const log = Log.create({ service: "system-prompt" })
   export async function environment(model: Provider.Model, editorContext?: EditorContext) {
-    console.log("[TestAgent CLI] 🌍 SystemPrompt.environment called")
-    console.log("[TestAgent CLI] 📦 editorContext:", JSON.stringify(editorContext, null, 2))
+    log.debug("environment called", { editorContext: JSON.stringify(editorContext, null, 2) })
 
     // testagent_change end
     const project = Instance.project
@@ -66,7 +67,7 @@ export namespace SystemPrompt {
       `</directories>`,
     ]
 
-    console.log("[TestAgent CLI] 📄 Generated system prompt (first 500 chars):", envLines.join("\n").substring(0, 500))
+    log.debug("generated system prompt", { preview: envLines.join("\n").substring(0, 500) })
 
     return [envLines.join("\n")]
   }

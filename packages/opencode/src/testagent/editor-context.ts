@@ -1,4 +1,8 @@
 // testagent_change - new file
+import { Log } from "../util/log"
+
+const log = Log.create({ service: "editor-context" })
+
 export interface EditorContext {
   visibleFiles?: string[]
   openTabs?: string[]
@@ -12,12 +16,12 @@ export interface EditorContext {
  * so they benefit from prompt caching.
  */
 export function staticEnvLines(ctx?: EditorContext): string[] {
-  console.log("[TestAgent CLI] 🔧 staticEnvLines called with:", JSON.stringify(ctx, null, 2))
+  log.debug("staticEnvLines called", { context: JSON.stringify(ctx, null, 2) })
   const lines: string[] = []
   if (ctx?.shell) {
     lines.push(`  Default shell: ${ctx.shell}`)
   }
-  console.log("[TestAgent CLI] 📋 staticEnvLines result:", lines)
+  log.debug("staticEnvLines result", { lines })
   return lines
 }
 
@@ -40,7 +44,7 @@ function timestamp(): string {
 }
 
 export function environmentDetails(ctx?: EditorContext): string {
-  console.log("[TestAgent CLI] 🌐 environmentDetails called with:", JSON.stringify(ctx, null, 2))
+  log.debug("environmentDetails called", { context: JSON.stringify(ctx, null, 2) })
   const lines: string[] = [`Current time: ${timestamp()}`]
   if (ctx?.activeFile) {
     lines.push(`Active file: ${ctx.activeFile}`)
@@ -58,6 +62,6 @@ export function environmentDetails(ctx?: EditorContext): string {
     }
   }
   const result = ["<environment_details>", ...lines, "</environment_details>"].join("\n")
-  console.log("[TestAgent CLI] 📝 environmentDetails result:", result)
+  log.debug("environmentDetails result", { result })
   return result
 }
