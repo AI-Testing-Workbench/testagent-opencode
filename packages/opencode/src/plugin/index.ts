@@ -88,6 +88,22 @@ export namespace Plugin {
     Effect.runFork(bus.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() }))
   }
 
+  function publishPluginInfo(bus: Bus.Interface, message: string) {
+    Effect.runFork(bus.publish(Session.Event.Info, { message }))
+  }
+
+  function isVSCodeEnvironment(): boolean {
+    return process.env.KILO_CLIENT === "vscode"
+  }
+
+  // testagent_change start - VS Code notification via stderr
+  function notifyVSCode(type: "info" | "error", message: string) {
+    // Output JSON to stderr with special prefix for VS Code extension to parse
+    const notification = JSON.stringify({ type: "plugin-notification", level: type, message })
+    console.error(`[TESTAGENT_NOTIFICATION] ${notification}`)
+  }
+  // testagent_change end
+
   async function applyPlugin(load: PluginLoader.Loaded, input: PluginInput, hooks: Hooks[]) {
     const plugin = readV1Plugin(load.mod, load.spec, "server", "detect")
     if (plugin) {
@@ -153,10 +169,13 @@ export namespace Plugin {
           }
           if (plugins.length) {
             // testagent_change start - notify plugin installation start
-            console.log(`Installing ${plugins.length} plugin${plugins.length > 1 ? "s" : ""}...`)
-            yield* bus.publish(Session.Event.Info, {
-              message: `Installing ${plugins.length} plugin${plugins.length > 1 ? "s" : ""}...`,
-            })
+            const message = `正在安装 ${plugins.length} 个插件...`
+            if (isVSCodeEnvironment()) {
+              notifyVSCode("info", message)
+            } else {
+              console.log(message)
+              yield* bus.publish(Session.Event.Info, { message })
+            }
             // testagent_change end
             yield* config.waitForDependencies()
           }
@@ -168,13 +187,15 @@ export namespace Plugin {
               report: {
                 start(candidate) {
                   // testagent_change start - notify plugin loading start
-                  console.log(`Loading plugin: ${candidate.plan.spec}`)
-                  Effect.runFork(
-                    bus.publish(Session.Event.Info, {
-                      message: `Loading plugin: ${candidate.plan.spec}`,
-                    }),
-                  )
+                  const message = `正在加载插件: ${candidate.plan.spec}`
+                  if (isVSCodeEnvironment()) {
+                    notifyVSCode("info", message)
+                  } else {
+                    console.log(message)
+                    Effect.runFork(bus.publish(Session.Event.Info, { message }))
+                  }
                   // testagent_change end
+                  log.info("loading plugin", { path: candidate.plan.spec })
                 },
                 missing(candidate, _retry, message) {
                   log.warn("plugin has no server entrypoint", { path: candidate.plan.spec, message })
@@ -187,24 +208,24 @@ export namespace Plugin {
                   if (stage === "install") {
                     const parsed = parsePluginSpecifier(spec)
                     log.error("failed to install plugin", { pkg: parsed.pkg, version: parsed.version, error: message })
-                    publishPluginError(bus, `Failed to install plugin ${parsed.pkg}@${parsed.version}: ${message}`)
+                    publishPluginError(bus, `安装插件 ${parsed.pkg}@${parsed.version} 失败: ${message}`)
                     return
                   }
 
                   if (stage === "compatibility") {
                     log.warn("plugin incompatible", { path: spec, error: message })
-                    publishPluginError(bus, `Plugin ${spec} skipped: ${message}`)
+                    publishPluginError(bus, `插件 ${spec} 已跳过: ${message}`)
                     return
                   }
 
                   if (stage === "entry") {
                     log.error("failed to resolve plugin server entry", { path: spec, error: message })
-                    publishPluginError(bus, `Failed to load plugin ${spec}: ${message}`)
+                    publishPluginError(bus, `加载插件 ${spec} 失败: ${message}`)
                     return
                   }
 
                   log.error("failed to load plugin", { path: spec, target: resolved?.entry, error: message })
-                  publishPluginError(bus, `Failed to load plugin ${spec}: ${message}`)
+                  publishPluginError(bus, `加载插件 ${spec} 失败: ${message}`)
                 },
               },
             }),
@@ -213,18 +234,24 @@ export namespace Plugin {
           const successCount = loaded.filter((l) => l !== undefined).length
           const failedCount = plugins.length - successCount
           if (successCount > 0) {
-            console.log(`✓ Successfully loaded ${successCount} plugin${successCount > 1 ? "s" : ""}${failedCount > 0 ? ` (${failedCount} failed)` : ""}`)
-            yield* bus.publish(Session.Event.Info, {
-              message: `✓ Successfully loaded ${successCount} plugin${successCount > 1 ? "s" : ""}${failedCount > 0 ? ` (${failedCount} failed)` : ""}`,
-            })
+            const message = `✓ 成功加载 ${successCount} 个插件${failedCount > 0 ? ` (${failedCount} 个失败)` : ""}`
+            if (isVSCodeEnvironment()) {
+              notifyVSCode("info", message)
+            } else {
+              console.log(message)
+              yield* bus.publish(Session.Event.Info, { message })
+            }
           }
           if (failedCount === plugins.length && plugins.length > 0) {
-            console.error(`Failed to load all ${failedCount} plugin${failedCount > 1 ? "s" : ""}. Check the logs for details.`)
-            yield* bus.publish(Session.Event.Error, {
-              error: new NamedError.Unknown({
-                message: `Failed to load all ${failedCount} plugin${failedCount > 1 ? "s" : ""}. Check the logs for details.`,
-              }).toObject(),
-            })
+            const message = `加载所有 ${failedCount} 个插件失败，请查看日志了解详情`
+            if (isVSCodeEnvironment()) {
+              notifyVSCode("error", message)
+            } else {
+              console.error(message)
+              yield* bus.publish(Session.Event.Error, {
+                error: new NamedError.Unknown({ message }).toObject(),
+              })
+            }
           }
           // testagent_change end
           for (const load of loaded) {
@@ -243,7 +270,7 @@ export namespace Plugin {
               Effect.catch((message) =>
                 bus.publish(Session.Event.Error, {
                   error: new NamedError.Unknown({
-                    message: `Failed to load plugin ${load.spec}: ${message}`,
+                    message: `加载插件 ${load.spec} 失败: ${message}`,
                   }).toObject(),
                 }),
               ),
