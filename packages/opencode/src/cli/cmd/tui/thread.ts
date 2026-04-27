@@ -118,10 +118,14 @@ export const TuiThreadCommand = cmd({
 
       // testagent_change start - external auth check
       try {
-        const user = await ExternalAuth.ensureAuthenticated()
+        const envId = process.env.TESTAGENT_USER_ID
+        const envName = process.env.TESTAGENT_USER_NAME
+        const user = envId && envName
+          ? { userId: envId, userName: envName, token: process.env.TESTAGENT_TOKEN ?? "" }
+          : await ExternalAuth.ensureAuthenticated()
         // Write user info to env so worker thread can read it at plugin init time
         process.env.TESTAGENT_USER_ID   = user.userId ?? ""
-        process.env.TESTAGENT_USER_NAME = user.userName   ?? ""
+        process.env.TESTAGENT_USER_NAME = user.userName ?? ""
         // Also store in User module so other parts of the CLI can access it
         const { User } = await import("@/testagent/user")
         User.set({ id: user.userId, name: user.userName })
