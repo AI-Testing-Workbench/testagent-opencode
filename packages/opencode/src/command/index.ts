@@ -85,7 +85,7 @@ export namespace Command {
 
         commands[Default.INIT] = {
           name: Default.INIT,
-          description: "guided AGENTS.md setup",
+          description: "引导式 AGENTS.md 配置",
           source: "command",
           get template() {
             return PROMPT_INITIALIZE.replace("${path}", ctx.worktree)
@@ -94,7 +94,7 @@ export namespace Command {
         }
         commands[Default.REVIEW] = {
           name: Default.REVIEW,
-          description: "review changes [commit|branch|pr], defaults to uncommitted",
+          description: "审查变更 [commit|branch|pr]，默认为未提交的变更",
           source: "command",
           get template() {
             return PROMPT_REVIEW.replace("${path}", ctx.worktree)

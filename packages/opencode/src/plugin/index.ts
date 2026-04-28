@@ -171,7 +171,7 @@ export namespace Plugin {
             // testagent_change start - notify plugin installation start
             const message = `正在安装 ${plugins.length} 个插件...`
             if (isVSCodeEnvironment()) {
-              notifyVSCode("info", message)
+              // notifyVSCode("info", message)
             } else {
               console.log(message)
               yield* bus.publish(Session.Event.Info, { message })
@@ -189,7 +189,7 @@ export namespace Plugin {
                   // testagent_change start - notify plugin loading start
                   const message = `正在加载插件: ${candidate.plan.spec}`
                   if (isVSCodeEnvironment()) {
-                    notifyVSCode("info", message)
+                    // notifyVSCode("info", message)
                   } else {
                     console.log(message)
                     Effect.runFork(bus.publish(Session.Event.Info, { message }))

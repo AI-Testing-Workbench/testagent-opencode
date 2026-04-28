@@ -442,7 +442,9 @@ export const BashTool = Tool.define("bash", async () => {
   const chain =
     name === "powershell"
       ? "If the commands depend on each other and must run sequentially, avoid '&&' in this shell because Windows PowerShell 5.1 does not support it. Use PowerShell conditionals such as `cmd1; if ($?) { cmd2 }` when later commands must depend on earlier success."
-      : "If the commands depend on each other and must run sequentially, use a single Bash call with '&&' to chain them together (e.g., `git add . && git commit -m \"message\" && git push`). For instance, if one operation must complete before another starts (like mkdir before cp, Write before Bash for git operations, or git add before git commit), run these operations sequentially instead."
+      : name === "cmd" // testagent_change
+        ? "If the commands depend on each other and must run sequentially, use '&&' to chain them together (e.g., `mkdir foo && cd foo && echo done`). CMD supports '&&' for conditional execution." // testagent_change
+        : "If the commands depend on each other and must run sequentially, use a single Bash call with '&&' to chain them together (e.g., `git add . && git commit -m \"message\" && git push`). For instance, if one operation must complete before another starts (like mkdir before cp, Write before Bash for git operations, or git add before git commit), run these operations sequentially instead."
   log.info("bash tool using shell", { shell })
 
   return {
