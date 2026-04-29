@@ -12,6 +12,7 @@ import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
 import { SkillTool } from "./skill"
+import { SandboxTool } from "../testagent/tool/sandbox"
 import type { Agent } from "../agent/agent"
 import { Tool } from "./tool"
 import { Config } from "../config/config"
@@ -110,7 +111,11 @@ export namespace ToolRegistry {
           }
 
           const dirs = yield* config.directories()
-          const matches = dirs.flatMap((dir) =>
+          // testagent_change start - also scan .testagent/ directories for tools
+          const testagentDirs = yield* config.testagentDirectories()
+          const allToolDirs = [...dirs, ...testagentDirs]
+          // testagent_change end
+          const matches = allToolDirs.flatMap((dir) =>
             Glob.scanSync("{tool,tools}/*.{js,ts}", { cwd: dir, absolute: true, dot: true, symlink: true }),
           )
           if (matches.length) yield* config.waitForDependencies()
@@ -153,6 +158,7 @@ export namespace ToolRegistry {
       const lsp = yield* build(LspTool)
       const batch = yield* build(BatchTool)
       const plan = yield* build(PlanExitTool)
+      const sandbox = yield* build(SandboxTool)
 
       const all = Effect.fn("ToolRegistry.all")(function* (custom: Tool.Info[]) {
         const cfg = yield* config.get()
@@ -174,6 +180,7 @@ export namespace ToolRegistry {
           code,
           skill,
           patch,
+          sandbox,
           ...(Flag.OPENCODE_EXPERIMENTAL_LSP_TOOL ? [lsp] : []),
           ...(cfg.experimental?.batch_tool === true ? [batch] : []),
           ...(Flag.OPENCODE_EXPERIMENTAL_PLAN_MODE && Flag.OPENCODE_CLIENT === "cli" ? [plan] : []),

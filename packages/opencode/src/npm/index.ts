@@ -42,7 +42,9 @@ export namespace Npm {
   }
 
   export async function outdated(pkg: string, cachedVersion: string): Promise<boolean> {
-    const response = await fetch(`https://registry.npmjs.org/${pkg}`)
+    // testagent_change: use internal npm registry
+    const registry = process.env.NPM_REGISTRY || "http://central.jaf.cmbchina.cn:80/artifactory/api/npm/group-npm"
+    const response = await fetch(`${registry}/${pkg}`)
     if (!response.ok) {
       log.warn("Failed to resolve latest version, using cached", { pkg, cachedVersion })
       return false
@@ -68,12 +70,15 @@ export namespace Npm {
       pkg,
     })
 
+    // testagent_change: configure internal npm registry
+    const registry = process.env.NPM_REGISTRY || "http://central.jaf.cmbchina.cn:80/artifactory/api/npm/group-npm"
     const arborist = new Arborist({
       path: dir,
       binLinks: true,
       progress: false,
       savePrefix: "",
       ignoreScripts: true,
+      registry,
     })
     const tree = await arborist.loadVirtual().catch(() => {})
     if (tree) {
@@ -108,14 +113,21 @@ export namespace Npm {
     log.info("checking dependencies", { dir })
 
     const reify = async () => {
+      // testagent_change: configure internal npm registry
+      const registry = process.env.NPM_REGISTRY || "http://central.jaf.cmbchina.cn:80/artifactory/api/npm/group-npm"
       const arb = new Arborist({
         path: dir,
         binLinks: true,
         progress: false,
         savePrefix: "",
         ignoreScripts: true,
+        registry,
       })
-      await arb.reify().catch(() => {})
+      await arb.reify().catch((err) => {
+        // testagent_change - log error instead of silently swallowing it
+        log.error("failed to install dependencies", { dir, error: err })
+        throw err
+      })
     }
 
     if (!(await Filesystem.exists(path.join(dir, "node_modules")))) {
@@ -148,6 +160,14 @@ export namespace Npm {
         await reify()
         return
       }
+      // testagent_change start - also check if package actually exists in node_modules
+      const pkgPath = path.join(dir, "node_modules", name)
+      if (!(await Filesystem.exists(pkgPath))) {
+        log.info("dependency missing in node_modules, reifying", { name })
+        await reify()
+        return
+      }
+      // testagent_change end
     }
 
     log.info("dependencies in sync")
