@@ -289,26 +289,59 @@ async function ask(ctx: Tool.Context, scan: Scan) {
 
 async function shellEnv(ctx: Tool.Context, cwd: string) {
   const extra = await Plugin.trigger("shell.env", { cwd, sessionID: ctx.sessionID, callID: ctx.callID }, { env: {} })
-  return {
+  // testagent_change start - set UTF-8 encoding for Windows to prevent garbled output
+  const baseEnv = {
     ...process.env,
     ...extra.env,
   }
+  
+  if (process.platform === "win32") {
+    return {
+      ...baseEnv,
+      PYTHONIOENCODING: "utf-8",
+      // Set Node.js to use UTF-8 for child process output
+      NODE_OPTIONS: `${baseEnv.NODE_OPTIONS || ""} --input-type=module`.trim(),
+    }
+  }
+  // testagent_change end
+  
+  return baseEnv
 }
 
 function cmd(shell: string, name: string, command: string, cwd: string, env: NodeJS.ProcessEnv) {
+  // testagent_change start - fix Windows encoding issues
+  const winEnv = process.platform === "win32" ? { ...env, PYTHONIOENCODING: "utf-8" } : env
+  // testagent_change end
+
   if (process.platform === "win32" && PS.has(name)) {
-    return ChildProcess.make(shell, ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command], {
+    // testagent_change start - set PowerShell output encoding to UTF-8
+    const psCommand = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ${command}`
+    return ChildProcess.make(shell, ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", psCommand], {
       cwd,
-      env,
+      env: winEnv,
+      stdin: "ignore",
+      detached: false,
+    })
+    // testagent_change end
+  }
+
+  // testagent_change start - for CMD, prepend chcp 65001 to set UTF-8 encoding
+  if (process.platform === "win32" && name === "cmd") {
+    const cmdCommand = `chcp 65001 >nul && ${command}`
+    return ChildProcess.make(cmdCommand, [], {
+      shell,
+      cwd,
+      env: winEnv,
       stdin: "ignore",
       detached: false,
     })
   }
+  // testagent_change end
 
   return ChildProcess.make(command, [], {
     shell,
     cwd,
-    env,
+    env: winEnv, // testagent_change
     stdin: "ignore",
     detached: process.platform !== "win32",
   })
