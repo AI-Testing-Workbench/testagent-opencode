@@ -60,6 +60,7 @@ import { TuiConfigProvider, useTuiConfig } from "./context/tui-config"
 import { TuiConfig } from "@/config/tui"
 import { createTuiApi, TuiPluginRuntime, type RouteMap } from "./plugin"
 import { FormatError, FormatUnknownError } from "@/cli/error"
+import { User } from "@/testagent/user" // testagent_change
 
 async function getTerminalBackgroundColor(): Promise<"dark" | "light"> {
   // can't set raw mode if not a TTY
@@ -713,6 +714,28 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
       },
       category: "System",
     },
+    // testagent_change start
+    {
+      title: "打开观测空间",
+      value: "log.ids",
+      slash: {
+        name: "log",
+      },
+      onSelect: (dialog) => {
+        const sid = route.data.type === "session" ? route.data.sessionID : undefined
+        const uid = User.get().id ?? ""
+        if (!sid) {
+          toast.show({ variant: "info", title: "暂无会话", message: "请先发送一条消息" })
+          dialog.clear()
+          return
+        }
+        const url = `https://testhub-agent-trace.paasuat.cmbchina.cn/redirect?type=sessions&sessions=${sid}&user_id=${uid}`
+        open(url).catch(() => {})
+        dialog.clear()
+      },
+      category: "System",
+    },
+    // testagent_change end
     {
       title: "Exit the app",
       value: "app.exit",

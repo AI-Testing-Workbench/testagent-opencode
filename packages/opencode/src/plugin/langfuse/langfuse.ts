@@ -10,62 +10,15 @@
  * - Token and cost tracking (if available via events)
  * - Isolated traces for each conversation turn
  */
-console.log("[langfuse] Loading...")
 
 import { Plugin } from "@opencode-ai/plugin"
 import { User } from "@/testagent/user"
 import LangfuseClient from "langfuse"
-declare const LANGFUSE_ENV: string
+import { readFileSync, existsSync } from "fs"
 
-// ==================== 配置加载 ====================
+const LANGFUSE_BASE_URL = "https://testhub-agent-trace.paasuat.cmbchina.cn";
+let baseMetadata: () => Record<string, string>
 
-const embeddedEnv = LANGFUSE_ENV || ""
-
-/**
- * 从 .env 文件加载环境变量
- * @param path .env 文件路径
- * @returns 环境变量对象
- */
-function loadEnv(content: string): Record<string, string> {
-  const env: Record<string, string> = {}
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith("#")) continue
-
-    const idx = trimmed.indexOf("=")
-    if (idx > 0) {
-      const key = trimmed.slice(0, idx).trim()
-      const val = trimmed
-        .slice(idx + 1)
-        .trim()
-        .replace(/^["']|["']$/g, "")
-      env[key] = val
-    }
-  }
-  return env
-}
-
-const envConfig = loadEnv(embeddedEnv ?? "")
-
-// 配置 Langfuse 连接信息
-const config = {
-  publicKey: process.env.LANGFUSE_PUBLIC_KEY ?? envConfig.LANGFUSE_PUBLIC_KEY,
-  secretKey: process.env.LANGFUSE_SECRET_KEY ?? envConfig.LANGFUSE_SECRET_KEY,
-  baseUrl:
-    process.env.LANGFUSE_BASE_URL ?? envConfig.LANGFUSE_BASE_URL ?? "https://testhub-agent-trace-dev.paas.cmbchina.cn",
-}
-
-console.log("[langfuse] Debug:", {
-  embeddedEnv: embeddedEnv ? "present" : "absent",
-  envConfigKeys: ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"],
-})
-console.log("[langfuse] Config:", {
-  hasPK: !!config.publicKey,
-  hasSK: !!config.secretKey,
-})
-
-// ==================== Langfuse 客户端初始化 ====================
-// 客户端在插件启动时（LangfusePlugin 函数内）初始化，此时用户已登录
 
 // ==================== 会话管理 ====================
 
@@ -120,6 +73,63 @@ interface SkillContext {
   span: any // Langfuse Span 对象
   traceId: string // 所属的 Trace ID
   gens: GenInfo[] // 该 Skill 内的生成列表
+}
+
+// ==================== Skill 原始内容缓存 ====================
+
+// 缓存 key: skill path, value: { raw: 原始全文, yaml: 解析后的 YAML, content: 过滤 YAML 后的正文 }
+const skillCache = new Map<string, { raw: string; yaml: Record<string, any>; content: string }>()
+
+/**
+ * 解析 markdown frontmatter，返回 { raw, yaml, content }
+ * 使用简单的前缀匹配提取 YAML（不依赖 gray-matter）
+ */
+function parseFrontmatter(raw: string): { yaml: Record<string, any>; content: string } {
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
+  if (!match) return { yaml: {}, content: raw }
+
+  const yamlBlock = match[1]
+  const content = match[2]
+  const yaml: Record<string, any> = {}
+
+  for (const line of yamlBlock.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith("#")) continue
+    const kvMatch = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(.*)$/)
+    if (!kvMatch) continue
+    const key = kvMatch[1]
+    const val = kvMatch[2].trim().replace(/^["']|["']$/g, "")
+    yaml[key] = val
+  }
+
+  return { yaml, content }
+}
+
+/**
+ * 根据 skill 的目录读取原始 SKILL.md，解析 YAML 并缓存
+ */
+function loadSkillRaw(dir: string, name: string): { raw: string; yaml: Record<string, any>; content: string } | null {
+  const cacheKey = `${dir}::${name}`
+  if (skillCache.has(cacheKey)) return skillCache.get(cacheKey)!
+
+  // 尝试 SKILL.md 或 skill.md
+  let filePath: string | null = null
+  if (existsSync(`${dir}/SKILL.md`)) {
+    filePath = `${dir}/SKILL.md`
+  } else if (existsSync(`${dir}/skill.md`)) {
+    filePath = `${dir}/skill.md`
+  }
+  if (!filePath) return null
+
+  try {
+    const raw = readFileSync(filePath, "utf-8")
+    const { yaml, content } = parseFrontmatter(raw)
+    const entry = { raw, yaml, content }
+    skillCache.set(cacheKey, entry)
+    return entry
+  } catch {
+    return null
+  }
 }
 
 // ==================== 全局状态管理 ====================
@@ -255,6 +265,7 @@ function createNewTrace(langfuse: any, sessionId: string, input: string, ctx: an
       tags: OBSERVATION_TAGS,
       project: ctx.project?.name,
       directory: ctx.directory,
+      ...baseMetadata(),
     },
   })
 
@@ -341,23 +352,6 @@ function convertToLLMMessages(messages: any[]): any[] {
     })
 }
 
-/**
- * 将 Zod schema 转换为纯 JSON Schema 格式
- * 过滤掉 Zod 内部字段（~standard, type, format, minLength 等）
- */
-function toJsonSchema(obj: any): any {
-  if (obj === null || obj === undefined) return obj
-  if (typeof obj !== "object") return obj
-  if (Array.isArray(obj)) return obj.map(toJsonSchema)
-
-  // Zod v4 schema has def.type to identify the type
-  if (obj.def && typeof obj.def === "object") {
-    return extractFromZodDef(obj.def)
-  }
-
-  // Plain object, extract known JSON Schema keys
-  return extractJsonSchemaKeys(obj)
-}
 
 function extractFromZodDef(def: Record<string, any>): any {
   const result: Record<string, any> = {}
@@ -628,31 +622,222 @@ function buildLLMInput(messages: any[], system: string[], tools: any[]): { json:
   return { json: JSON.stringify(dict, null, 2), dict }
 }
 
+// ==================== Langfuse API 辅助函数 ====================
+
+async function signup_user(user_id: string, user_name: string, langfuse_host: string): Promise<void> {
+  const res = await fetch(`${langfuse_host}/api/auth/sign-up`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify([
+      {
+        name: `${user_name}/${user_id}`,
+        email: `${user_id}@cmbchina.com`,
+        password: `${user_id}@cmbchina.com`,
+      },
+    ]),
+  })
+  const resJson = await res.json()
+  if (resJson.message === "User created") {
+    console.log(`[langfuse] 注册用户成功:${user_name}/${user_id}`)
+  } else {
+    console.error(`[langfuse] 注册用户失败:${JSON.stringify(resJson)}`)
+  }
+}
+
+async function get_langfuse_login_token(langfuse_host: string, user_id: string): Promise<string> {
+  const password = `${user_id}@cmbchina.com`
+  const email = password.toLowerCase()
+
+  const csrfRes = await fetch(`${langfuse_host}/api/auth/csrf`)
+  const csrfJson = await csrfRes.json()
+  const csrf_token = csrfJson.csrfToken
+
+  const cookies: Record<string, string> = {}
+  csrfRes.headers.get("set-cookie")?.split(",").forEach((cookie) => {
+    const parts = cookie.trim().split(";")[0].split("=")
+    if (parts.length === 2) cookies[parts[0]] = parts[1]
+  })
+  let csrf_headers = ""
+  for (const [key, value] of Object.entries(cookies)) {
+    csrf_headers += `${key}=${value};`
+  }
+
+  const credentials_body = new URLSearchParams({
+    email,
+    password,
+    callbackUrl: "/",
+    redirect: "false",
+    turnstileToken: "undefined",
+    csrfToken: csrf_token,
+    json: "true",
+  })
+
+  const credentialsRes = await fetch(`${langfuse_host}/api/auth/callback/credentials`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: csrf_headers,
+      Origin: langfuse_host,
+      Referer: `${langfuse_host}/auth/sign-in`,
+    },
+    body: credentials_body,
+  })
+
+  const finalCookies: Record<string, string> = {}
+  credentialsRes.headers.get("set-cookie")?.split(",").forEach((cookie) => {
+    const parts = cookie.trim().split(";")[0].split("=")
+    if (parts.length === 2) finalCookies[parts[0]] = parts[1]
+  })
+  let final_cookies = ""
+  for (const [key, value] of Object.entries(finalCookies)) {
+    final_cookies += `${key}=${value};`
+  }
+  return final_cookies
+}
+
+async function create_organization(session: string, langfuse_host: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${langfuse_host}/api/trpc/organizations.create`, {
+      method: "POST",
+      headers: { Cookie: session, "Content-Type": "application/json" },
+      body: JSON.stringify({ json: { name: "TestAgent", appId: "", channel: "testagent" } }),
+    })
+    const resJson = await res.json()
+    return resJson.result.data.json.id
+  } catch (e) {
+    console.error(`[langfuse] 创建organization失败:${e}`)
+    return null
+  }
+}
+
+async function create_project(
+  user_id: string,
+  user_name: string,
+  org_id: string,
+  session: string,
+  langfuse_host: string,
+): Promise<{ public_key: string; secret_key: string; project_id: string } | null> {
+  try {
+    let res = await fetch(`${langfuse_host}/api/trpc/projects.create`, {
+      method: "POST",
+      headers: { Cookie: session, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        json: { name: `${user_name}/${user_id}`, orgId: org_id, appId: "", techId: "", channel: "testagent" },
+      }),
+    })
+    let resJson = await res.json()
+    const project_id = resJson.result.data.json.id
+
+    res = await fetch(`${langfuse_host}/api/trpc/projectApiKeys.create`, {
+      method: "POST",
+      headers: { Cookie: session, "Content-Type": "application/json" },
+      body: JSON.stringify({ json: { projectId: project_id } }),
+    })
+    resJson = await res.json()
+    const public_key = resJson.result.data.json.publicKey
+    const secret_key = resJson.result.data.json.secretKey
+    return { public_key, secret_key, project_id }
+  } catch (e) {
+    console.error(`[langfuse] 创建project失败:${e}`)
+    return null
+  }
+}
+
+async function get_apikeys_by_user(
+  user_id: string,
+  user_name: string,
+  langfuse_host: string,
+): Promise<{ public_key: string; secret_key: string; project_id: string } | null> {
+  try {
+    const res = await fetch(`${langfuse_host}/api/trpc/projectApiKeys.byUserInfo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ json: { userInfo: `${user_name}/${user_id}` } }),
+    })
+    const resJson = await res.json()
+    const public_key = resJson.result.data.json.publicKey
+    const secret_key = resJson.result.data.json.secretKey
+    const project_id = resJson.result.data.json.projectId
+    return { public_key, secret_key, project_id }
+  } catch (e) {
+    console.error(`[langfuse] 获取密钥信息失败:${e}`)
+    return null
+  }
+}
+
+async function get_project_apikeys(
+  user_id: string,
+  user_name: string,
+  langfuse_host: string,
+): Promise<{ public_key: string; secret_key: string; project_id: string } | null> {
+  let result = await get_apikeys_by_user(user_id, user_name, langfuse_host)
+  if (result?.public_key && result?.secret_key) {
+    return result
+  }
+
+  const session = await get_langfuse_login_token(langfuse_host, user_id)
+  const org_id = await create_organization(session, langfuse_host)
+  if (org_id) {
+    result = await create_project(user_id, user_name, org_id, session, langfuse_host)
+    if (result?.public_key && result?.secret_key) {
+      return result
+    }
+  }
+  return null
+}
+
+
 // ==================== 插件主逻辑 ====================
+// ==================== Langfuse 客户端初始化 ====================
+// 客户端在插件启动时（LangfusePlugin 函数内）初始化，此时用户已登录
+
 
 export const LangfusePlugin: Plugin = async (ctx) => {
   console.log("[langfuse] Plugin started")
-
-  // 插件启动时初始化 Langfuse 客户端，此时用户已登录
   const user = User.get()
-  const pk = user.id ? `pk-${user.id}` : config.publicKey
-  const sk = user.id ? `sk-${user.id}` : config.secretKey
-  console.log("[langfuse] init", { userId: user.id, userName: user.name, hasPK: !!pk, hasSK: !!sk })
-
   let langfuse: any = null
-  if (pk && sk) {
+  let project_id: string | null = null
+  let userIdMetadata: string | null = null
+  const defaultPublicKey = "pk-lf-d89067e9-5eb3-42cc-b947-2d82a1a9e181"
+  const defaultSecretKey = "sk-lf-773528e2-aa24-48d0-9791-b7f795cbfb9a"
+  if (user.id && user.name) {
+    userIdMetadata = `${user.name}/${user.id}`
     try {
-      langfuse = new LangfuseClient({
-        publicKey: pk,
-        secretKey: sk,
-        baseUrl: config.baseUrl,
-        flushAt: 1,
-      })
-      console.log("[langfuse] Client initialized", { userId: user.id, userName: user.name })
+      const apiKeys = await get_project_apikeys(user.id, user.name, LANGFUSE_BASE_URL)
+      if (apiKeys) {
+        project_id = apiKeys.project_id
+        langfuse = new LangfuseClient({
+          publicKey: apiKeys.public_key,
+          secretKey: apiKeys.secret_key,
+          baseUrl: LANGFUSE_BASE_URL,
+          flushAt: 1,
+        })
+      } else {
+        langfuse = new LangfuseClient({
+            publicKey: defaultPublicKey,
+            secretKey: defaultSecretKey,
+            baseUrl: LANGFUSE_BASE_URL,
+            flushAt: 1,
+          })
+      }
     } catch (e) {
-      console.log("[langfuse] Failed:", e)
+      console.log("[langfuse] Failed to initialize with dynamic keys:", e)
+      langfuse = new LangfuseClient({
+            publicKey: defaultPublicKey,
+            secretKey: defaultSecretKey,
+            baseUrl: LANGFUSE_BASE_URL,
+            flushAt: 1,
+          })
     }
   }
+  
+  baseMetadata = () => {
+    const m: Record<string, string> = {}
+    if (project_id) m.projectId = project_id
+    if (userIdMetadata) m.user_id = userIdMetadata
+    return m
+  }
+
 
   return {
     /**
@@ -669,9 +854,8 @@ export const LangfusePlugin: Plugin = async (ctx) => {
       const textContent = textParts.map((p) => p.text).join("\n")
       userInputs.set(sessionId, textContent)
 
-      // 使用随机 UUID 作为 Trace ID，不包含冗余的 sessionId 信息
-      // 通过 sessionId 字段关联到会话
-      const traceId = generateUUID()
+      // 使用 messageID 作为 Trace ID，TUI 可直接读取无需跨进程通信
+      const traceId = input.messageID ?? generateUUID()
       currentTraceId = traceId
 
       // 消息计数器继续累加，用于其他用途（如清理）
@@ -770,6 +954,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
         input: llmInputDict,
         output: {},
         tags: OBSERVATION_TAGS,
+        ...baseMetadata(),
       }
 
       // 如果在 Skill 上下文中，创建 Skill 的子 Generation
@@ -902,7 +1087,8 @@ export const LangfusePlugin: Plugin = async (ctx) => {
           input: sanitize(output.args),
           tags: OBSERVATION_TAGS,
           metadata: {
-            spanKind: "tool",
+            spanKind: "TOOL",
+            nodeType: isSkill ? "skill" : "tool",
             tags: OBSERVATION_TAGS,
             input: {
               tool: input.tool,
@@ -910,6 +1096,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
               callID: input.callID,
               args: output.args,
             },
+            ...baseMetadata(),
           },
         }
         const spanObj = currentParent ? currentParent.span(spanParams) : trace.span(spanParams)
@@ -934,16 +1121,30 @@ export const LangfusePlugin: Plugin = async (ctx) => {
         const isSkill = input.tool === "skill"
         const level = output.output === null ? "ERROR" : "DEFAULT"
 
+        // 如果是 skill 工具，读取原始 SKILL.md 并缓存 YAML 信息
+        let skillYamlInfo: Record<string, any> | undefined
+        let skillRawContent: string | undefined
+        if (isSkill && output.metadata?.dir) {
+          const skillName = input.args?.name || output.metadata.name
+          const info = loadSkillRaw(output.metadata.dir, skillName)
+          if (info) {
+            skillYamlInfo = info.yaml
+            skillRawContent = info.raw
+          }
+        }
+
         span.end({
           output: output.output === null ? null : String(output.output).slice(0, 10000),
           level,
           metadata: {
-            spanKind: "tool",
+            spanKind: "TOOL",
+            nodeType: isSkill ? "skill" : "tool",
             tags: OBSERVATION_TAGS,
             output: {
               title: output.title,
               output: output.output,
               metadata: output.metadata,
+              ...(skillYamlInfo && {yaml: skillYamlInfo}),
             },
             input: {
               tool: input.tool,
@@ -980,6 +1181,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
           input: g.gen.metadata?.input,
           output: { text: output.text },
           tags: OBSERVATION_TAGS,
+          ...baseMetadata(),
         },
       })
     },
@@ -1120,6 +1322,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
               input: g.gen.metadata?.input,
               output: structuredOutput,
               tags: OBSERVATION_TAGS,
+              ...baseMetadata(),
             },
           })
 
@@ -1176,6 +1379,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
               model: g.gen.metadata?.model,
               output: out,
               tags: OBSERVATION_TAGS,
+              ...baseMetadata(),
             },
           })
           g.finalOutput = out
@@ -1205,6 +1409,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
 
         // 清理 skill 栈、activeGen 和全局 generation 列表
         skillStack.length = 0
+        skillCache.clear()
         activeGen = null
         toolSpans.clear()
         allGenerations.length = 0
@@ -1226,7 +1431,12 @@ export const LangfusePlugin: Plugin = async (ctx) => {
           const traceId = currentTraceId || generateUUID()
           const trace = traces.get(traceId)
           if (trace) {
-            trace.update({ metadata: { error: evt.error?.message } })
+            trace.update({
+              metadata: {
+                error: evt.error?.message,
+                ...baseMetadata(),
+              },
+            })
           }
         }
         flush(langfuse)
