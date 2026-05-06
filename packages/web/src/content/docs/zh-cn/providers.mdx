@@ -1,36 +1,36 @@
 ---
-title: 提供商
-description: 在 OpenCode 中使用任意 LLM 提供商。
+title: 模型API
+description: 在 OpenCode 中使用任意 LLM 模型API。
 ---
 
 import config from "../../../../config.mjs"
 export const console = config.console
 
-OpenCode 使用 [AI SDK](https://ai-sdk.dev/) 和 [Models.dev](https://models.dev)，支持 **75+ LLM 提供商**，同时也支持运行本地模型。
+OpenCode 使用 [AI SDK](https://ai-sdk.dev/) 和 [Models.dev](https://models.dev)，支持 **75+ LLM 模型API**，同时也支持运行本地模型。
 
-要添加提供商，你需要：
+要添加模型API，你需要：
 
-1. 使用 `/connect` 命令添加提供商的 API 密钥。
-2. 在 OpenCode 配置中设置该提供商。
+1. 使用 `/connect` 命令添加模型API的 API 密钥。
+2. 在 OpenCode 配置中设置该模型API。
 
 ---
 
 ### 凭据
 
-使用 `/connect` 命令添加提供商的 API 密钥后，凭据会存储在
+使用 `/connect` 命令添加模型API的 API 密钥后，凭据会存储在
 `~/.local/share/opencode/auth.json` 中。
 
 ---
 
 ### 配置
 
-你可以通过 OpenCode 配置中的 `provider` 部分来自定义提供商。
+你可以通过 OpenCode 配置中的 `provider` 部分来自定义模型API。
 
 ---
 
 #### 自定义 Base URL
 
-你可以通过设置 `baseURL` 选项来自定义任何提供商的 Base URL。这在使用代理服务或自定义端点时非常有用。
+你可以通过设置 `baseURL` 选项来自定义任何模型API的 Base URL。这在使用代理服务或自定义端点时非常有用。
 
 ```json title="opencode.json" {6}
 {
@@ -78,16 +78,16 @@ OpenCode Zen 是由 OpenCode 团队提供的模型列表，这些模型已经过
    /models
    ```
 
-它的使用方式与 OpenCode 中的其他提供商完全相同，且完全可选。
+它的使用方式与 OpenCode 中的其他模型API完全相同，且完全可选。
 
 ---
 
 ## 目录
 
-下面我们来详细了解一些提供商。如果你想将某个提供商添加到列表中，欢迎提交 PR。
+下面我们来详细了解一些模型API。如果你想将某个模型API添加到列表中，欢迎提交 PR。
 
 :::note
-没有看到你想要的提供商？欢迎提交 PR。
+没有看到你想要的模型API？欢迎提交 PR。
 :::
 
 ---
@@ -236,7 +236,7 @@ OpenCode Zen 是由 OpenCode 团队提供的模型列表，这些模型已经过
    ```
 
 :::note
-对于自定义推理配置文件，请在 key 中使用模型名称和提供商名称，并将 `id` 属性设置为 ARN。这可以确保正确的缓存行为：
+对于自定义推理配置文件，请在 key 中使用模型名称和模型API名称，并将 `id` 属性设置为 ARN。这可以确保正确的缓存行为：
 
 ```json title="opencode.json"
 {
@@ -449,7 +449,7 @@ OpenCode Zen 是由 OpenCode 团队提供的模型列表，这些模型已经过
 
 ### Cloudflare AI Gateway
 
-Cloudflare AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、Workers AI 等提供商的模型。通过 [Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/)，你无需为每个提供商单独准备 API 密钥。
+Cloudflare AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、Workers AI 等模型API的模型。通过 [Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/)，你无需为每个模型API单独准备 API 密钥。
 
 1. 前往 [Cloudflare 仪表盘](https://dash.cloudflare.com/)，导航到 **AI** > **AI Gateway**，创建一个新的网关。
 
@@ -866,7 +866,7 @@ export GITLAB_OAUTH_CLIENT_ID=your_application_id_here
    /connect
    ```
 
-3. 输入该提供商的 API 密钥。
+3. 输入该模型API的 API 密钥。
 
    ```txt
    ┌ API key
@@ -885,7 +885,7 @@ export GITLAB_OAUTH_CLIENT_ID=your_application_id_here
 
 ### Hugging Face
 
-[Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers) 提供对由 17+ 提供商支持的开放模型的访问。
+[Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers) 提供对由 17+ 模型API支持的开放模型的访问。
 
 1. 前往 [Hugging Face 设置](https://huggingface.co/settings/tokens/new?ownUserPermissions=inference.serverless.write&tokenType=fineGrained)，创建一个具有调用 Inference Providers 权限的令牌。
 
@@ -914,7 +914,7 @@ export GITLAB_OAUTH_CLIENT_ID=your_application_id_here
 
 ### Helicone
 
-[Helicone](https://helicone.ai) 是一个 LLM 可观测性平台，为你的 AI 应用提供日志记录、监控和分析功能。Helicone AI Gateway 会根据模型自动将请求路由到对应的提供商。
+[Helicone](https://helicone.ai) 是一个 LLM 可观测性平台，为你的 AI 应用提供日志记录、监控和分析功能。Helicone AI Gateway 会根据模型自动将请求路由到对应的模型API。
 
 1. 前往 [Helicone](https://helicone.ai)，创建账户并在仪表盘中生成 API 密钥。
 
@@ -939,7 +939,7 @@ export GITLAB_OAUTH_CLIENT_ID=your_application_id_here
    /models
    ```
 
-如需了解更多提供商以及缓存、速率限制等高级功能，请查阅 [Helicone 文档](https://docs.helicone.ai)。
+如需了解更多模型API以及缓存、速率限制等高级功能，请查阅 [Helicone 文档](https://docs.helicone.ai)。
 
 #### 可选配置
 
@@ -973,7 +973,7 @@ export GITLAB_OAUTH_CLIENT_ID=your_application_id_here
 
 #### 自定义请求头
 
-Helicone 支持用于缓存、用户跟踪和会话管理等功能的自定义请求头。使用 `options.headers` 将它们添加到提供商配置中：
+Helicone 支持用于缓存、用户跟踪和会话管理等功能的自定义请求头。使用 `options.headers` 将它们添加到模型API配置中：
 
 ```jsonc title="~/.config/opencode/opencode.jsonc"
 {
@@ -1055,9 +1055,9 @@ npm install -g opencode-helicone-session
 
 在这个示例中：
 
-- `llama.cpp` 是自定义的提供商 ID，可以是任意字符串。
-- `npm` 指定该提供商使用的包。这里使用 `@ai-sdk/openai-compatible` 来兼容任何 OpenAI 兼容的 API。
-- `name` 是该提供商在 UI 中显示的名称。
+- `llama.cpp` 是自定义的模型API ID，可以是任意字符串。
+- `npm` 指定该模型API使用的包。这里使用 `@ai-sdk/openai-compatible` 来兼容任何 OpenAI 兼容的 API。
+- `name` 是该模型API在 UI 中显示的名称。
 - `options.baseURL` 是本地服务器的端点地址。
 - `models` 是模型 ID 到其配置的映射。模型名称会显示在模型选择列表中。
 
@@ -1118,9 +1118,9 @@ IO.NET 提供 17 个针对不同用例优化的模型：
 
 在这个示例中：
 
-- `lmstudio` 是自定义的提供商 ID，可以是任意字符串。
-- `npm` 指定该提供商使用的包。这里使用 `@ai-sdk/openai-compatible` 来兼容任何 OpenAI 兼容的 API。
-- `name` 是该提供商在 UI 中显示的名称。
+- `lmstudio` 是自定义的模型API ID，可以是任意字符串。
+- `npm` 指定该模型API使用的包。这里使用 `@ai-sdk/openai-compatible` 来兼容任何 OpenAI 兼容的 API。
+- `name` 是该模型API在 UI 中显示的名称。
 - `options.baseURL` 是本地服务器的端点地址。
 - `models` 是模型 ID 到其配置的映射。模型名称会显示在模型选择列表中。
 
@@ -1239,9 +1239,9 @@ Ollama 可以自动为 OpenCode 进行配置。详见 [Ollama 集成文档](http
 
 在这个示例中：
 
-- `ollama` 是自定义的提供商 ID，可以是任意字符串。
-- `npm` 指定该提供商使用的包。这里使用 `@ai-sdk/openai-compatible` 来兼容任何 OpenAI 兼容的 API。
-- `name` 是该提供商在 UI 中显示的名称。
+- `ollama` 是自定义的模型API ID，可以是任意字符串。
+- `npm` 指定该模型API使用的包。这里使用 `@ai-sdk/openai-compatible` 来兼容任何 OpenAI 兼容的 API。
+- `name` 是该模型API在 UI 中显示的名称。
 - `options.baseURL` 是本地服务器的端点地址。
 - `models` 是模型 ID 到其配置的映射。模型名称会显示在模型选择列表中。
 
@@ -1361,7 +1361,7 @@ OpenCode Zen 是由 OpenCode 团队提供的经过测试和验证的模型列表
    /connect
    ```
 
-3. 输入该提供商的 API 密钥。
+3. 输入该模型API的 API 密钥。
 
    ```txt
    ┌ API key
@@ -1391,7 +1391,7 @@ OpenCode Zen 是由 OpenCode 团队提供的经过测试和验证的模型列表
    }
    ```
 
-5. 你还可以通过 OpenCode 配置自定义模型。以下是指定提供商的示例：
+5. 你还可以通过 OpenCode 配置自定义模型。以下是指定模型API的示例：
 
    ```json title="opencode.json"
    {
@@ -1615,7 +1615,7 @@ STACKIT AI Model Serving 提供完全托管的主权托管环境，专注于 Lla
 
 ### Vercel AI Gateway
 
-Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、Google、xAI 等提供商的模型。模型按原价提供，不额外加价。
+Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、Google、xAI 等模型API的模型。模型按原价提供，不额外加价。
 
 1. 前往 [Vercel 仪表盘](https://vercel.com/)，导航到 **AI Gateway** 标签页，点击 **API keys** 创建新的 API 密钥。
 
@@ -1640,7 +1640,7 @@ Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、G
    /models
    ```
 
-你也可以通过 OpenCode 配置自定义模型。以下是指定提供商路由顺序的示例。
+你也可以通过 OpenCode 配置自定义模型。以下是指定模型API路由顺序的示例。
 
 ```json title="opencode.json"
 {
@@ -1663,9 +1663,9 @@ Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、G
 
 | 选项                | 描述                             |
 | ------------------- | -------------------------------- |
-| `order`             | 提供商尝试顺序                   |
-| `only`              | 限制为特定提供商                 |
-| `zeroDataRetention` | 仅使用具有零数据留存策略的提供商 |
+| `order`             | 模型API尝试顺序                   |
+| `only`              | 限制为特定模型API                 |
+| `zeroDataRetention` | 仅使用具有零数据留存策略的模型API |
 
 ---
 
@@ -1735,7 +1735,7 @@ Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、G
    /connect
    ```
 
-3. 输入该提供商的 API 密钥。
+3. 输入该模型API的 API 密钥。
 
    ```txt
    ┌ API key
@@ -1767,12 +1767,12 @@ Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、G
 
 ---
 
-## 自定义提供商
+## 自定义模型API
 
-要添加 `/connect` 命令中未列出的任何 **OpenAI 兼容**提供商：
+要添加 `/connect` 命令中未列出的任何 **OpenAI 兼容**模型API：
 
 :::tip
-你可以在 OpenCode 中使用任何 OpenAI 兼容的提供商。大多数现代 AI 提供商都提供 OpenAI 兼容的 API。
+你可以在 OpenCode 中使用任何 OpenAI 兼容的模型API。大多数现代 AI 模型API都提供 OpenAI 兼容的 API。
 :::
 
 1. 执行 `/connect` 命令，向下滚动到 **Other**。
@@ -1788,7 +1788,7 @@ Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、G
    └
    ```
 
-2. 输入该提供商的唯一 ID。
+2. 输入该模型API的唯一 ID。
 
    ```bash
    $ /connect
@@ -1804,7 +1804,7 @@ Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、G
    请选择一个容易记住的 ID，你将在配置文件中使用它。
    :::
 
-3. 输入该提供商的 API 密钥。
+3. 输入该模型API的 API 密钥。
 
    ```bash
    $ /connect
@@ -1841,7 +1841,7 @@ Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、G
    ```
 
    以下是配置选项说明：
-   - **npm**：要使用的 AI SDK 包，对于 OpenAI 兼容的提供商使用 `@ai-sdk/openai-compatible`（适用于 `/v1/chat/completions`）。如果你的提供商/模型走 `/v1/responses`，请使用 `@ai-sdk/openai`。
+   - **npm**：要使用的 AI SDK 包，对于 OpenAI 兼容的模型API使用 `@ai-sdk/openai-compatible`（适用于 `/v1/chat/completions`）。如果你的模型API/模型走 `/v1/responses`，请使用 `@ai-sdk/openai`。
    - **name**：在 UI 中显示的名称。
    - **models**：可用模型。
    - **options.baseURL**：API 端点 URL。
@@ -1850,7 +1850,7 @@ Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、G
 
    更多高级选项请参见下面的示例。
 
-5. 执行 `/models` 命令，你自定义的提供商和模型将出现在选择列表中。
+5. 执行 `/models` 命令，你自定义的模型API和模型将出现在选择列表中。
 
 ---
 
@@ -1893,19 +1893,19 @@ Vercel AI Gateway 允许你通过统一端点访问来自 OpenAI、Anthropic、G
 - **limit.context**：模型接受的最大输入 Token 数。
 - **limit.output**：模型可生成的最大 Token 数。
 
-`limit` 字段让 OpenCode 了解你还剩余多少上下文空间。标准提供商会自动从 models.dev 拉取这些信息。
+`limit` 字段让 OpenCode 了解你还剩余多少上下文空间。标准模型API会自动从 models.dev 拉取这些信息。
 
 ---
 
 ## 故障排除
 
-如果你在配置提供商时遇到问题，请检查以下几点：
+如果你在配置模型API时遇到问题，请检查以下几点：
 
-1. **检查认证设置**：运行 `opencode auth list` 查看该提供商的凭据是否已添加到配置中。
+1. **检查认证设置**：运行 `opencode auth list` 查看该模型API的凭据是否已添加到配置中。
 
-   这不适用于 Amazon Bedrock 等依赖环境变量进行认证的提供商。
+   这不适用于 Amazon Bedrock 等依赖环境变量进行认证的模型API。
 
-2. 对于自定义提供商，请检查 OpenCode 配置并确认：
-   - `/connect` 命令中使用的提供商 ID 与 OpenCode 配置中的 ID 一致。
-   - 使用了正确的 npm 包。例如，Cerebras 应使用 `@ai-sdk/cerebras`。对于其他所有 OpenAI 兼容的提供商，使用 `@ai-sdk/openai-compatible`（`/v1/chat/completions`）；如果模型走 `/v1/responses`，请使用 `@ai-sdk/openai`。同一 provider 混用时，可在模型下设置 `provider.npm` 覆盖默认值。
+2. 对于自定义模型API，请检查 OpenCode 配置并确认：
+   - `/connect` 命令中使用的模型API ID 与 OpenCode 配置中的 ID 一致。
+   - 使用了正确的 npm 包。例如，Cerebras 应使用 `@ai-sdk/cerebras`。对于其他所有 OpenAI 兼容的模型API，使用 `@ai-sdk/openai-compatible`（`/v1/chat/completions`）；如果模型走 `/v1/responses`，请使用 `@ai-sdk/openai`。同一 provider 混用时，可在模型下设置 `provider.npm` 覆盖默认值。
    - `options.baseURL` 字段中的 API 端点地址正确。

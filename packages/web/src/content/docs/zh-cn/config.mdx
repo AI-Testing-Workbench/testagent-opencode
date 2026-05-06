@@ -59,7 +59,7 @@ OpenCode 支持 **JSON** 和 **JSONC**（带注释的 JSON）格式。
 
 ### 远程
 
-组织可以通过 `.well-known/opencode` 端点提供默认配置。当您使用支持该功能的提供商进行身份验证时，会自动获取此配置。
+组织可以通过 `.well-known/opencode` 端点提供默认配置。当您使用支持该功能的模型API进行身份验证时，会自动获取此配置。
 
 远程配置最先加载，作为基础层。所有其他配置源（全局、项目）都可以覆盖这些默认值。
 
@@ -95,7 +95,7 @@ OpenCode 支持 **JSON** 和 **JSONC**（带注释的 JSON）格式。
 
 ### 全局
 
-将全局 OpenCode 配置放在 `~/.config/opencode/opencode.json` 中。使用全局配置来设置用户级别的偏好，例如主题、提供商或快捷键。
+将全局 OpenCode 配置放在 `~/.config/opencode/opencode.json` 中。使用全局配置来设置用户级别的偏好，例如主题、模型API或快捷键。
 
 全局配置覆盖远程组织默认值。
 
@@ -225,7 +225,7 @@ opencode run "Hello world"
 
 ### 模型
 
-您可以通过 `provider`、`model` 和 `small_model` 选项在 OpenCode 配置中设置要使用的提供商和模型。
+您可以通过 `provider`、`model` 和 `small_model` 选项在 OpenCode 配置中设置要使用的模型API和模型。
 
 ```json title="opencode.json"
 {
@@ -236,9 +236,9 @@ opencode run "Hello world"
 }
 ```
 
-`small_model` 选项为标题生成等轻量级任务配置单独的模型。默认情况下，如果您的提供商有更便宜的模型可用，OpenCode 会尝试使用该模型，否则会回退到您的主模型。
+`small_model` 选项为标题生成等轻量级任务配置单独的模型。默认情况下，如果您的模型API有更便宜的模型可用，OpenCode 会尝试使用该模型，否则会回退到您的主模型。
 
-提供商选项可以包括 `timeout` 和 `setCacheKey`：
+模型API选项可以包括 `timeout` 和 `setCacheKey`：
 
 ```json title="opencode.json"
 {
@@ -255,15 +255,15 @@ opencode run "Hello world"
 ```
 
 - `timeout` - 请求超时时间，单位为毫秒（默认值：300000）。设置为 `false` 可禁用超时。
-- `setCacheKey` - 确保始终为指定提供商设置缓存键。
+- `setCacheKey` - 确保始终为指定模型API设置缓存键。
 
 您还可以配置[本地模型](/docs/models#local)。[了解更多](/docs/models)。
 
 ---
 
-#### 提供商特定选项
+#### 模型API特定选项
 
-一些提供商支持除通用 `timeout` 和 `apiKey` 设置之外的额外配置选项。
+一些模型API支持除通用 `timeout` 和 `apiKey` 设置之外的额外配置选项。
 
 ##### Amazon Bedrock
 
@@ -563,9 +563,9 @@ OpenCode 启动时会自动下载新版本。您可以使用 `autoupdate` 选项
 
 ---
 
-### 禁用提供商
+### 禁用模型API
 
-您可以通过 `disabled_providers` 选项禁用自动加载的提供商。当您希望阻止某些提供商被加载（即使其凭据可用）时，此选项非常有用。
+您可以通过 `disabled_providers` 选项禁用自动加载的模型API。当您希望阻止某些模型API被加载（即使其凭据可用）时，此选项非常有用。
 
 ```json title="opencode.json"
 {
@@ -578,17 +578,17 @@ OpenCode 启动时会自动下载新版本。您可以使用 `autoupdate` 选项
 `disabled_providers` 优先于 `enabled_providers`。
 :::
 
-`disabled_providers` 选项接受提供商 ID 的数组。当某个提供商被禁用时：
+`disabled_providers` 选项接受模型API ID 的数组。当某个模型API被禁用时：
 
 - 即使设置了环境变量，也不会被加载。
 - 即使通过 `/connect` 命令配置了 API 密钥，也不会被加载。
-- 该提供商的模型不会出现在模型选择列表中。
+- 该模型API的模型不会出现在模型选择列表中。
 
 ---
 
-### 启用提供商
+### 启用模型API
 
-您可以通过 `enabled_providers` 选项指定允许使用的提供商白名单。设置后，仅启用指定的提供商，所有其他提供商将被忽略。
+您可以通过 `enabled_providers` 选项指定允许使用的模型API白名单。设置后，仅启用指定的模型API，所有其他模型API将被忽略。
 
 ```json title="opencode.json"
 {
@@ -597,13 +597,13 @@ OpenCode 启动时会自动下载新版本。您可以使用 `autoupdate` 选项
 }
 ```
 
-当您希望限制 OpenCode 仅使用特定提供商，而不是逐一禁用其他提供商时，此选项非常有用。
+当您希望限制 OpenCode 仅使用特定模型API，而不是逐一禁用其他模型API时，此选项非常有用。
 
 :::note
 `disabled_providers` 优先于 `enabled_providers`。
 :::
 
-如果某个提供商同时出现在 `enabled_providers` 和 `disabled_providers` 中，为了向后兼容，`disabled_providers` 优先。
+如果某个模型API同时出现在 `enabled_providers` 和 `disabled_providers` 中，为了向后兼容，`disabled_providers` 优先。
 
 ---
 

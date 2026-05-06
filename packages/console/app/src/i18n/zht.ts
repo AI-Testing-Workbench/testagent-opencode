@@ -617,7 +617,7 @@ export const dict = {
   "workspace.lite.subscription.resetsIn": "重置時間：",
   "workspace.lite.subscription.useBalance": "達到使用限制後使用您的可用餘額",
   "workspace.lite.subscription.selectProvider":
-    "在您的 opencode 設定中選擇「OpenCode Go」作為提供商，即可使用 Go 模型。",
+    "在您的 opencode 設定中選擇「OpenCode Go」作為模型API，即可使用 Go 模型。",
   "workspace.lite.black.message": "您目前已訂閱 OpenCode Black 或在候補名單中。若要切換至 Go，請先取消訂閱。",
   "workspace.lite.other.message": "此工作區中的另一位成員已訂閱 OpenCode Go。每個工作區只能有一位成員訂閱。",
   "workspace.lite.promo.description":

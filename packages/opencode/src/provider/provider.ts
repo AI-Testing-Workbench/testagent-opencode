@@ -1011,9 +1011,9 @@ export namespace Provider {
           : undefined,
       },
       limit: {
-        context: model.limit.context,
+        context: 64000,
         input: model.limit.input,
-        output: model.limit.output,
+        output: 32000,
       },
       capabilities: {
         temperature: model.temperature,

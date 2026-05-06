@@ -125,18 +125,18 @@ opencode 服务器暴露以下 API。
 | ------- | ------------------- | -------------------- | ---------------------------------------------------------------------------------------- |
 | `GET`   | `/config`           | 获取配置信息         | <a href={typesUrl}><code>Config</code></a>                                               |
 | `PATCH` | `/config`           | 更新配置             | <a href={typesUrl}><code>Config</code></a>                                               |
-| `GET`   | `/config/providers` | 列出提供商和默认模型 | `{ providers: `<a href={typesUrl}>Provider[]</a>`, default: { [key: string]: string } }` |
+| `GET`   | `/config/providers` | 列出模型API和默认模型 | `{ providers: `<a href={typesUrl}>Provider[]</a>`, default: { [key: string]: string } }` |
 
 ---
 
-### 提供商
+### 模型API
 
 | 方法   | 路径                             | 描述                    | 响应                                                                                |
 | ------ | -------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
-| `GET`  | `/provider`                      | 列出所有提供商          | `{ all: `<a href={typesUrl}>Provider[]</a>`, default: {...}, connected: string[] }` |
-| `GET`  | `/provider/auth`                 | 获取提供商认证方式      | `{ [providerID: string]: `<a href={typesUrl}>ProviderAuthMethod[]</a>` }`           |
-| `POST` | `/provider/{id}/oauth/authorize` | 使用 OAuth 授权提供商   | <a href={typesUrl}><code>ProviderAuthAuthorization</code></a>                       |
-| `POST` | `/provider/{id}/oauth/callback`  | 处理提供商的 OAuth 回调 | `boolean`                                                                           |
+| `GET`  | `/provider`                      | 列出所有模型API          | `{ all: `<a href={typesUrl}>Provider[]</a>`, default: {...}, connected: string[] }` |
+| `GET`  | `/provider/auth`                 | 获取模型API认证方式      | `{ [providerID: string]: `<a href={typesUrl}>ProviderAuthMethod[]</a>` }`           |
+| `POST` | `/provider/{id}/oauth/authorize` | 使用 OAuth 授权模型API   | <a href={typesUrl}><code>ProviderAuthAuthorization</code></a>                       |
+| `POST` | `/provider/{id}/oauth/callback`  | 处理模型API的 OAuth 回调 | `boolean`                                                                           |
 
 ---
 
@@ -265,7 +265,7 @@ opencode 服务器暴露以下 API。
 
 | 方法  | 路径        | 描述                                         | 响应      |
 | ----- | ----------- | -------------------------------------------- | --------- |
-| `PUT` | `/auth/:id` | 设置认证凭据。请求体必须匹配提供商的数据结构 | `boolean` |
+| `PUT` | `/auth/:id` | 设置认证凭据。请求体必须匹配模型API的数据结构 | `boolean` |
 
 ---
 

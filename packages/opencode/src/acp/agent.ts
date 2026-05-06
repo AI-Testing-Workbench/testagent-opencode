@@ -73,6 +73,7 @@ export namespace ACP {
 
     const provider = providers.find((p) => p.id === providerID)
     const model = provider?.models[modelID]
+    log.info("model info===123123213131",{model})
     return model?.limit.context ?? null
   }
 

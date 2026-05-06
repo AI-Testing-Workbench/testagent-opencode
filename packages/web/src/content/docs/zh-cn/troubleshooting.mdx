@@ -207,13 +207,13 @@ OpenCode Desktop 仅在以下情况下显示系统通知：
 
 1. 尝试在 TUI 中使用 `/connect` 命令重新进行身份验证
 2. 检查你的 API 密钥是否有效
-3. 确保你的网络允许连接到提供商的 API
+3. 确保你的网络允许连接到模型API的 API
 
 ---
 
 ### 模型不可用
 
-1. 检查你是否已通过提供商的身份验证
+1. 检查你是否已通过模型API的身份验证
 2. 验证配置中的模型名称是否正确
 3. 某些模型可能需要特定的访问权限或订阅
 
@@ -236,7 +236,7 @@ OpenCode Desktop 仅在以下情况下显示系统通知：
 
 要解决此问题：
 
-1. 首先，按照[提供商指南](/docs/providers)验证你的提供商是否已正确设置
+1. 首先，按照[模型API指南](/docs/providers)验证你的模型API是否已正确设置
 2. 如果问题仍然存在，请尝试清除已存储的配置：
 
    ```bash
@@ -245,17 +245,17 @@ OpenCode Desktop 仅在以下情况下显示系统通知：
 
    在 Windows 上，按 `WIN+R` 并删除：`%USERPROFILE%\.local\share\opencode`
 
-3. 在 TUI 中使用 `/connect` 命令重新与提供商进行身份验证。
+3. 在 TUI 中使用 `/connect` 命令重新与模型API进行身份验证。
 
 ---
 
-### AI_APICallError 和提供商包问题
+### AI_APICallError 和模型API包问题
 
-如果你遇到 API 调用错误，可能是由于提供商包过期导致的。OpenCode 会根据需要动态安装提供商包（OpenAI、Anthropic、Google 等）并将它们缓存到本地。
+如果你遇到 API 调用错误，可能是由于模型API包过期导致的。OpenCode 会根据需要动态安装模型API包（OpenAI、Anthropic、Google 等）并将它们缓存到本地。
 
-要解决提供商包问题：
+要解决模型API包问题：
 
-1. 清除提供商包缓存：
+1. 清除模型API包缓存：
 
    ```bash
    rm -rf ~/.cache/opencode
@@ -263,9 +263,9 @@ OpenCode Desktop 仅在以下情况下显示系统通知：
 
    在 Windows 上，按 `WIN+R` 并删除：`%USERPROFILE%\.cache\opencode`
 
-2. 重新启动 OpenCode 以重新安装最新的提供商包
+2. 重新启动 OpenCode 以重新安装最新的模型API包
 
-这将强制 OpenCode 下载最新版本的提供商包，通常可以解决模型参数和 API 变更带来的兼容性问题。
+这将强制 OpenCode 下载最新版本的模型API包，通常可以解决模型参数和 API 变更带来的兼容性问题。
 
 ---
 

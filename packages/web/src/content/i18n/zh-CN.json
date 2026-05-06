@@ -17,7 +17,7 @@
   "app.lander.features.github_copilot.description": "使用 GitHub 登录并使用你的 Copilot 账号。",
   "app.lander.features.chatgpt_plus_pro.description": "使用 OpenAI 登录并使用你的 ChatGPT Plus 或 Pro 账号。",
   "app.lander.features.use_any_model.title": "使用任意模型",
-  "app.lander.features.use_any_model.prefix": "通过以下方式支持 75+ LLM 提供商",
+  "app.lander.features.use_any_model.prefix": "通过以下方式支持 75+ LLM 模型API",
   "app.lander.features.use_any_model.suffix": "包括本地模型。",
   "app.lander.images.tui.caption": "opencode TUI（tokyonight 主题）",
   "app.lander.images.tui.alt": "opencode TUI（tokyonight 主题）",

@@ -1,23 +1,23 @@
 ---
 title: 模型
-description: 設定 LLM 提供商和模型。
+description: 設定 LLM 模型API和模型。
 ---
 
-OpenCode 使用 [AI SDK](https://ai-sdk.dev/) 和 [Models.dev](https://models.dev) 支援 **75+ LLM 提供商**，並支援執行本地模型。
+OpenCode 使用 [AI SDK](https://ai-sdk.dev/) 和 [Models.dev](https://models.dev) 支援 **75+ LLM 模型API**，並支援執行本地模型。
 
 ---
 
-## 提供商
+## 模型API
 
-大多數熱門提供商已預設預先載入。如果您透過 `/connect` 指令新增了提供商的憑證，它們將在您啟動 OpenCode 時自動可用。
+大多數熱門模型API已預設預先載入。如果您透過 `/connect` 指令新增了模型API的憑證，它們將在您啟動 OpenCode 時自動可用。
 
-了解更多關於[提供商](/docs/providers)的資訊。
+了解更多關於[模型API](/docs/providers)的資訊。
 
 ---
 
 ## 選擇模型
 
-設定好提供商後，您可以透過輸入以下指令來選擇想要使用的模型：
+設定好模型API後，您可以透過輸入以下指令來選擇想要使用的模型：
 
 ```bash frame="none"
 /models
@@ -59,7 +59,7 @@ OpenCode 使用 [AI SDK](https://ai-sdk.dev/) 和 [Models.dev](https://models.de
 
 這裡完整的 ID 格式為 `provider_id/model_id`。例如，如果您使用 [OpenCode Zen](/docs/zen)，則 GPT 5.1 Codex 對應的值為 `opencode/gpt-5.1-codex`。
 
-如果您設定了[自訂提供商](/docs/providers#custom)，`provider_id` 是設定中 `provider` 部分的鍵名，`model_id` 是 `provider.models` 中的鍵名。
+如果您設定了[自訂模型API](/docs/providers#custom)，`provider_id` 是設定中 `provider` 部分的鍵名，`model_id` 是 `provider.models` 中的鍵名。
 
 ---
 
@@ -99,8 +99,8 @@ OpenCode 使用 [AI SDK](https://ai-sdk.dev/) 和 [Models.dev](https://models.de
 }
 ```
 
-這裡我們為兩個內建模型設定了全域選項：透過 `openai` 提供商存取的 `gpt-5`，以及透過 `anthropic` 提供商存取的 `claude-sonnet-4-20250514`。
-內建的提供商和模型名稱可以在 [Models.dev](https://models.dev) 上查閱。
+這裡我們為兩個內建模型設定了全域選項：透過 `openai` 模型API存取的 `gpt-5`，以及透過 `anthropic` 模型API存取的 `claude-sonnet-4-20250514`。
+內建的模型API和模型名稱可以在 [Models.dev](https://models.dev) 上查閱。
 
 您還可以為使用中的任何代理設定這些選項。代理設定會覆寫此處的全域選項。[了解更多](/docs/agents/#additional)。
 
@@ -136,11 +136,11 @@ OpenCode 使用 [AI SDK](https://ai-sdk.dev/) 和 [Models.dev](https://models.de
 
 ## 變體
 
-許多模型支援具有不同設定的多種變體。OpenCode 為熱門提供商內建了預設變體。
+許多模型支援具有不同設定的多種變體。OpenCode 為熱門模型API內建了預設變體。
 
 ### 內建變體
 
-OpenCode 為許多提供商提供了預設變體：
+OpenCode 為許多模型API提供了預設變體：
 
 **Anthropic**：
 
@@ -164,7 +164,7 @@ OpenCode 為許多提供商提供了預設變體：
 - `high` - 較高推理/Token 預算
 
 :::tip
-此列表並不全面，許多其他提供商也有內建的預設變體。
+此列表並不全面，許多其他模型API也有內建的預設變體。
 :::
 
 ### 自訂變體
