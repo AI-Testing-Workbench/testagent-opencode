@@ -1011,9 +1011,9 @@ export namespace Provider {
           : undefined,
       },
       limit: {
-        context: 64000,
+        context: model.id=='qwen3p6-35b-a3b' ?64000 : model.limit.context,
         input: model.limit.input,
-        output: 32000,
+        output:model.id=='qwen3p6-35b-a3b' ? 32000 :model.limit.output,
       },
       capabilities: {
         temperature: model.temperature,
