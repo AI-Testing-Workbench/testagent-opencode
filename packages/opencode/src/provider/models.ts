@@ -123,7 +123,8 @@ const TEST_LLM_API_KEY = "sk-WHMJMG6H36UGdq7FdVzODA"
 async function fetchTestLLMModels(): Promise<Record<string, ModelsDev.Model>> {
   const apiKey = process.env.TEST_LLM_API_KEY ?? TEST_LLM_API_KEY
   const baseURL = (process.env.TEST_LLM_BASE_URL ?? TEST_LLM_BASE_URL).replace(/\/+$/, "")
-  const url = `${baseURL}/models`
+  const userId = process.env.TESTAGENT_USER_ID ?? ""
+  const url = `${baseURL}/models?user_id=${encodeURIComponent(userId)}` 
 
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${apiKey}` },
