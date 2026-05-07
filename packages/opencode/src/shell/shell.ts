@@ -55,15 +55,10 @@ export namespace Shell {
   }
 
   function pick() {
-    // testagent_change start - prioritize CMD on Windows
-    // Return undefined to skip PowerShell and use fallback (CMD)
-    return undefined
-    // testagent_change end
-    // Original PowerShell priority (commented out):
-    // const pwsh = Bun.which("pwsh")
-    // if (pwsh) return pwsh
-    // const powershell = Bun.which("powershell")
-    // if (powershell) return powershell
+    const pwsh = Bun.which("pwsh")
+    if (pwsh) return pwsh
+    const powershell = Bun.which("powershell")
+    if (powershell) return powershell
   }
 
   function select(file: string | undefined, opts?: { acceptable?: boolean }) {
@@ -86,13 +81,9 @@ export namespace Shell {
 
   function fallback() {
     if (process.platform === "win32") {
-      // testagent_change start - prioritize CMD over Git Bash
+      const file = gitbash()
+      if (file) return file
       return process.env.COMSPEC || "cmd.exe"
-      // testagent_change end
-      // Original Git Bash priority (commented out):
-      // const file = gitbash()
-      // if (file) return file
-      // return process.env.COMSPEC || "cmd.exe"
     }
     if (process.platform === "darwin") return "/bin/zsh"
     const bash = which("bash")
