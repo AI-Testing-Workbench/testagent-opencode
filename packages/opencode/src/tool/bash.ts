@@ -297,7 +297,11 @@ async function shellEnv(ctx: Tool.Context, cwd: string) {
 
 function cmd(shell: string, name: string, command: string, cwd: string, env: NodeJS.ProcessEnv) {
   if (process.platform === "win32" && PS.has(name)) {
-    return ChildProcess.make(shell, ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command], {
+    // testagent_change start: Ensure UTF-8 output on Windows PowerShell
+    // Prepend OutputEncoding setting to force UTF-8 output
+    const utf8Command = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ${command}`
+    return ChildProcess.make(shell, ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", utf8Command], {
+      // testagent_change end
       cwd,
       env,
       stdin: "ignore",
