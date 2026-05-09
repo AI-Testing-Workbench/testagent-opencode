@@ -11,6 +11,7 @@ import { Instance } from "../project/instance"
 import { Vcs } from "../project/vcs"
 import { Agent } from "../agent/agent"
 import { Skill } from "../skill"
+import { MCP } from "../mcp" // testagent_change
 import { Global } from "../global"
 import { LSP } from "../lsp"
 import { Command } from "../command"
@@ -256,6 +257,30 @@ export const InstanceRoutes = (upgrade: UpgradeWebSocket, app: Hono = new Hono()
       }),
       async (c) => {
         await Skill.reload()
+        return c.json({ success: true })
+      },
+    )
+    // testagent_change end
+    // testagent_change start - add reload MCP servers endpoint
+    .post(
+      "/mcp/reload",
+      describeRoute({
+        summary: "Reload MCP servers",
+        description: "Reload all MCP servers from config file without restarting CLI",
+        operationId: "mcp.reload",
+        responses: {
+          200: {
+            description: "MCP servers reloaded successfully",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ success: z.boolean() })),
+              },
+            },
+          },
+        },
+      }),
+      async (c) => {
+        await MCP.reload()
         return c.json({ success: true })
       },
     )

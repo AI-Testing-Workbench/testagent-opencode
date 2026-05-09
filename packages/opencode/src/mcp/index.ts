@@ -243,6 +243,7 @@ export namespace MCP {
     readonly supportsOAuth: (mcpName: string) => Effect.Effect<boolean>
     readonly hasStoredTokens: (mcpName: string) => Effect.Effect<boolean>
     readonly getAuthStatus: (mcpName: string) => Effect.Effect<AuthStatus>
+    readonly reload: () => Effect.Effect<void> // testagent_change
   }
 
   export class Service extends ServiceMap.Service<Service, Interface>()("@opencode/MCP") {}
@@ -855,6 +856,77 @@ export namespace MCP {
         return (expired ? "expired" : "authenticated") as AuthStatus
       })
 
+      // testagent_change start - add reload method to refresh MCP servers from config
+      const reload = Effect.fn("MCP.reload")(function* () {
+        log.info("reloading mcp servers from config")
+
+        // 1. Invalidate config cache to force re-read from disk
+        yield* cfgSvc.invalidate()
+
+        // 2. Re-read config (now fresh from disk)
+        const cfg = yield* cfgSvc.get()
+        const config = cfg.mcp ?? {}
+
+        // 2. Get current state
+        const s = yield* InstanceState.get(state)
+
+        // 3. Close all existing connections
+        yield* Effect.forEach(
+          Object.entries(s.clients),
+          ([name, client]) =>
+            Effect.gen(function* () {
+              const pid = (client.transport as any)?.pid
+              if (typeof pid === "number") {
+                const pids = yield* descendants(pid)
+                for (const dpid of pids) {
+                  try {
+                    process.kill(dpid, "SIGTERM")
+                  } catch {}
+                }
+              }
+              yield* Effect.tryPromise(() => client.close()).pipe(Effect.ignore)
+            }),
+          { concurrency: "unbounded" },
+        )
+
+        // 4. Clear state
+        s.status = {}
+        s.clients = {}
+        s.defs = {}
+        pendingOAuthTransports.clear()
+
+        // 5. Reinitialize from config (reuse initialization logic)
+        yield* Effect.forEach(
+          Object.entries(config),
+          ([key, mcp]) =>
+            Effect.gen(function* () {
+              if (!isMcpConfigured(mcp)) {
+                log.error("Ignoring MCP config entry without type", { key })
+                return
+              }
+
+              if (mcp.enabled === false) {
+                s.status[key] = { status: "disabled" }
+                return
+              }
+
+              const result = yield* create(key, mcp).pipe(Effect.catch(() => Effect.succeed(undefined)))
+              if (!result) return
+
+              s.status[key] = result.status
+              if (result.mcpClient) {
+                s.clients[key] = result.mcpClient
+                s.defs[key] = result.defs!
+                watch(s, key, result.mcpClient, mcp.timeout)
+              }
+            }),
+          { concurrency: "unbounded" },
+        )
+
+        log.info("mcp servers reloaded successfully", { count: Object.keys(s.clients).length })
+      })
+      // testagent_change end
+
       return Service.of({
         status,
         clients,
@@ -873,6 +945,7 @@ export namespace MCP {
         supportsOAuth,
         hasStoredTokens,
         getAuthStatus,
+        reload, // testagent_change
       })
     }),
   )
@@ -924,4 +997,6 @@ export namespace MCP {
   export const hasStoredTokens = async (mcpName: string) => runPromise((svc) => svc.hasStoredTokens(mcpName))
 
   export const getAuthStatus = async (mcpName: string) => runPromise((svc) => svc.getAuthStatus(mcpName))
+
+  export const reload = async () => runPromise((svc) => svc.reload()) // testagent_change
 }
