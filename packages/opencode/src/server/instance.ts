@@ -236,6 +236,30 @@ export const InstanceRoutes = (upgrade: UpgradeWebSocket, app: Hono = new Hono()
         return c.json(skills)
       },
     )
+    // testagent_change start - add reload skills endpoint
+    .post(
+      "/skill/reload",
+      describeRoute({
+        summary: "Reload skills",
+        description: "Invalidate skill cache and reload all skills from disk",
+        operationId: "app.reloadSkills",
+        responses: {
+          200: {
+            description: "Skills reloaded successfully",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ success: z.boolean() })),
+              },
+            },
+          },
+        },
+      }),
+      async (c) => {
+        await Skill.reload()
+        return c.json({ success: true })
+      },
+    )
+    // testagent_change end
     .get(
       "/lsp",
       describeRoute({
