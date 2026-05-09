@@ -6,6 +6,8 @@ import { lazy } from "@/util/lazy"
 import { Filesystem } from "../util/filesystem"
 import { Flock } from "@/util/flock"
 import { Hash } from "@/util/hash"
+import { Log } from "../util/log" // testagent_change - import Log for debugging
+import { User } from "../testagent/user" // testagent_change - import User for userId
 
 // Try to import bundled snapshot (generated at build time)
 // Falls back to undefined in dev mode when snapshot doesn't exist
@@ -123,9 +125,11 @@ const TEST_LLM_API_KEY = "sk-WHMJMG6H36UGdq7FdVzODA"
 async function fetchTestLLMModels(): Promise<Record<string, ModelsDev.Model>> {
   const apiKey = process.env.TEST_LLM_API_KEY ?? TEST_LLM_API_KEY
   const baseURL = (process.env.TEST_LLM_BASE_URL ?? TEST_LLM_BASE_URL).replace(/\/+$/, "")
-  const userId = process.env.TESTAGENT_USER_ID ?? ""
-  const url = `${baseURL}/models?user_id=${encodeURIComponent(userId)}` 
-
+  const userId = User.get().id ?? ""
+  const url = `${baseURL}/models?user_id=${encodeURIComponent(userId)}`
+  // testagent_change - log URL and userId for debugging
+  Log.create({ service: 'provider' }).info('fetchModels', { url, userId, baseURL }) 
+  
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${apiKey}` },
     signal: AbortSignal.timeout(10_000),
