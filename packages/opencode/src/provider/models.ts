@@ -154,7 +154,7 @@ async function fetchTestLLMModels(): Promise<Record<string, ModelsDev.Model>> {
       temperature: true,
       tool_call: true,
       cost: { input: 0, output: 0 },
-      limit: { context: 192000, output: 192000 },
+      limit: { context: 64000, output: 0 },
       options: {},
       modalities: {
         input: ["text"],

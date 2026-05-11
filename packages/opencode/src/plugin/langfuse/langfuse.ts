@@ -17,6 +17,8 @@ import LangfuseClient from "langfuse"
 import { readFileSync, existsSync } from "fs"
 
 const LANGFUSE_BASE_URL = "https://testhub-agent-trace.paasuat.cmbchina.cn";
+// const LANGFUSE_BASE_URL = "http://localhost:3000";
+
 let baseMetadata: () => Record<string, string>
 
 
@@ -61,6 +63,7 @@ interface GenInfo {
   output: string // 输出内容（纯文本，含 <think>）
   parts: string[] // 部分输出数组
   toolCalls: Array<{ toolCallId: string; name: string; args: any }> // 工具调用信息
+  toolResults?: Array<{ toolCallId: string; name: string; output: string; index: number; args: any; metadata?: any }> // 工具返回信息
   isSkillChild: boolean // 是否为 Skill 的子节点
   hasUsage: boolean // 是否已经收到 usage 信息
   finalOutput: { text: string; tool_calls?: any[]; usage?: any } | null // 缓存最终结构化输出
@@ -313,43 +316,95 @@ function formatMessages(messages: any[]): string {
 
 /**
  * 将内部消息格式转换为标准 LLM 消息格式
+ * 格式参考示例：
+ *   assistant 消息携带 tool_calls 数组（OpenAI 格式）
+ *   tool 角色消息携带 tool_call_id + content + name
  * @param messages 内部消息数组
  * @returns 标准消息数组
  */
 function convertToLLMMessages(messages: any[]): any[] {
-  return messages
-    .filter((m) => m.info?.role && m.parts?.length > 0)
-    .map((m) => {
-      const role = m.info.role
-      const name = m.info.name || role
-      const content = m.parts
-        .filter(
-          (p: any) => p.type === "text" || p.type === "tool-call" || p.type === "tool-result" || p.type === "reasoning",
-        )
-        .map((p: any) => {
-          if (p.type === "text") return { type: "text", text: p.text }
-          if (p.type === "tool-call")
-            return {
-              type: "tool_call",
-              tool_call: {
-                id: p.toolCallId || "",
-                name: p.name,
-                arguments: JSON.stringify(p.args || {}),
-              },
-            }
-          if (p.type === "tool-result")
-            return {
-              type: "tool_result",
-              tool_result: {
-                tool_call_id: p.toolCallId || "",
-                content: p.output,
-              },
-            }
-          if (p.type === "reasoning") return { type: "text", text: p.text }
-          return { type: p.type, text: JSON.stringify(p) }
+  const result: any[] = []
+
+  for (const m of messages) {
+    if (!m.info?.role || !m.parts?.length) continue
+
+    const role = m.info.role
+    const name = m.info.name || role
+
+    // Collect text/reasoning content and tool_calls for assistant messages
+    const textContent: any[] = []
+    const toolCalls: any[] = []
+    const toolResults: any[] = []
+
+    for (const p of m.parts) {
+      if (p.type === "text") {
+        textContent.push({ type: "text", text: p.text })
+      } else if (p.type === "reasoning") {
+        textContent.push({ type: "text", text: p.text })
+      } else if (p.type === "tool") {
+        // tool_use (call)
+        if (p.state?.input !== undefined) {
+          toolCalls.push({
+            id: p.callID || "",
+            type: "function",
+            function: {
+              name: p.tool,
+              arguments: p.state.input,
+            },
+          })
+        }
+        // tool result
+        if (p.state?.status === "completed" && p.state?.output !== undefined) {
+          toolResults.push({
+            role: "tool",
+            tool_call_id: p.callID || "",
+            name: p.tool,
+            content: p.state.output,
+          })
+        } else if (p.state?.status === "error" && p.state?.error) {
+          toolResults.push({
+            role: "tool",
+            tool_call_id: p.callID || "",
+            name: p.tool,
+            content: `Error: ${p.state.error}`,
+          })
+        }
+      }
+      // legacy tool-call part
+      else if (p.type === "tool-call") {
+        toolCalls.push({
+          id: p.toolCallId || "",
+          type: "function",
+          function: {
+            name: p.name,
+            arguments: p.args || {},
+          },
         })
-      return { role, name, content }
-    })
+      }
+      // legacy tool-result part
+      else if (p.type === "tool-result") {
+        toolResults.push({
+          role: "tool",
+          tool_call_id: p.toolCallId || "",
+          name: p.name || "",
+          content: p.output,
+        })
+      }
+    }
+
+    // Build the main message (assistant or user/system)
+    // content is always an array to match the example format
+    const msg: any = { role, name }
+    msg.content = textContent.length > 0 ? textContent : null
+    if (toolCalls.length > 0) msg.tool_calls = toolCalls
+
+    result.push(msg)
+
+    // Append tool result messages immediately after the assistant message
+    for (const tr of toolResults) result.push(tr)
+  }
+
+  return result
 }
 
 
@@ -800,6 +855,14 @@ export const LangfusePlugin: Plugin = async (ctx) => {
   let userIdMetadata: string | null = null
   const defaultPublicKey = "pk-lf-d89067e9-5eb3-42cc-b947-2d82a1a9e181"
   const defaultSecretKey = "sk-lf-773528e2-aa24-48d0-9791-b7f795cbfb9a"
+  // const defaultPublicKey = "pk-lf-bf708a61-3379-47cc-bd08-d7a27e7b3d17"
+  // const defaultSecretKey = "sk-lf-323eb51b-50c7-453a-81a1-c756162e86d8"
+  langfuse = new LangfuseClient({
+            publicKey: defaultPublicKey,
+            secretKey: defaultSecretKey,
+            baseUrl: LANGFUSE_BASE_URL,
+            flushAt: 1,
+          })
   if (user.id && user.name) {
     userIdMetadata = `${user.name}/${user.id}`
     try {
@@ -1256,75 +1319,156 @@ export const LangfusePlugin: Plugin = async (ctx) => {
               })
             }
           }
-          if (part.type === "tool-result") {
-            g.parts.push(`Tool Result: ${part.output?.substring(0, 1000) || ""}`)
+          // Tool result: part.type === "tool" 且 state.status === "completed" 时包含 output
+          if (part.type === "tool" && part.state?.status === "completed" && part.state?.output) {
+            g.parts.push(`Tool Result: ${part.state.output?.substring(0, 1000) || ""}`)
+            // 缓存 tool result 用于构建完整输入上下文
+            if (!g.toolResults) g.toolResults = []
+            g.toolResults.push({
+              toolCallId: part.callID || "",
+              name: part.tool || "",
+              output: part.state.output || "",
+              metadata: part.metadata,
+              index: g.toolCalls.findIndex((tc) => tc.toolCallId === (part.callID || "")),
+              args: g.toolCalls.find((tc) => tc.toolCallId === (part.callID || ""))?.args || {},
+            })
           }
         }
 
-        // 处理步骤完成事件
-        if (part.type === "step-finish" && part.tokens && g) {
-          // Step 完成后，判断是否要结束 skill 栈
-          if (part.reason !== "tool-calls" && skillStack.length > 0) {
-            const popped = skillStack.pop()
-            if (popped) {
-              toolSpans.delete(popped.callID)
+          // 处理步骤完成事件
+          if (part.type === "step-finish" && part.tokens && g) {
+            // Step 完成后，判断是否要结束 skill 栈
+            if (part.reason !== "tool-calls" && skillStack.length > 0) {
+              const popped = skillStack.pop()
+              if (popped) {
+                toolSpans.delete(popped.callID)
+              }
             }
-          }
 
-          const endTime = new Date()
+            const endTime = new Date()
 
-          // 若首 token 时间未记录（纯工具调用节点），用 endTime 兜底避免 time_to_first_token = 总 latency
-          if (!g.completionStartTime) {
-            g.completionStartTime = endTime
-            g.gen.update({ completionStartTime: endTime.toISOString() })
-          }
+            // 若首 token 时间未记录（纯工具调用节点），用 endTime 兜底避免 time_to_first_token = 总 latency
+            if (!g.completionStartTime) {
+              g.completionStartTime = endTime
+              g.gen.update({ completionStartTime: endTime.toISOString() })
+            }
 
-          // 从 parts 中提取纯文本内容（排除 Tool Call/Result/Reasoning 标记）
-          const textContent = g.parts
-            .filter((p) => !p.startsWith("Tool Call:") && !p.startsWith("Tool Result:") && !p.startsWith("Reasoning:"))
-            .join("\n\n")
-          const reasonText = g.parts
-            .filter((p) => p.startsWith("Reasoning:"))
-            .map((p) => p.replace(/^Reasoning: /, ""))
-            .join("\n")
-          const fullText = reasonText ? `<think>\n${reasonText}</think>\n\n${textContent}` : textContent
+            // 从 parts 中提取 pure tool result 信息
+            const toolResults: Array<{ toolCallId: string; name: string; output: string }> = []
+            g.toolCalls.forEach((tc) => {
+              const resultPart = g.parts.find((p) => p === `Tool Result: ${tc.toolCallId}` || p.startsWith("Tool Result:") && g.parts.indexOf(p) > g.parts.indexOf(`Tool Call: ${tc.name}(`))
+              if (resultPart) {
+                const raw = resultPart.replace("Tool Result: ", "")
+                toolResults.push({ toolCallId: tc.toolCallId, name: tc.name, output: raw })
+              }
+            })
 
-          // 构建 tool_calls 数组
-          const toolCallsOutput = g.toolCalls.map((tc) => ({
-            type: "tool_use",
-            id: tc.toolCallId || `call_${Math.random().toString(36).substring(2, 12)}`,
-            name: tc.name,
-            input: tc.args || {},
-          }))
+            // 从 parts 中提取纯文本内容（排除 Tool Call/Result/Reasoning 标记）
+            const textContent = g.parts
+              .filter((p) => !p.startsWith("Tool Call:") && !p.startsWith("Tool Result:") && !p.startsWith("Reasoning:"))
+              .join("\n\n")
+            const reasonText = g.parts
+              .filter((p) => p.startsWith("Reasoning:"))
+              .map((p) => p.replace(/^Reasoning: /, ""))
+              .join("\n")
+            const fullText = reasonText ? `${reasonText}\n\n${textContent}` : textContent
 
-          // 构建结构化输出: { text, tool_calls, usage }
-          const structuredOutput = {
-            text: fullText,
-            tool_calls: toolCallsOutput.length > 0 ? toolCallsOutput : undefined,
-            usage: {
-              input_tokens: part.tokens.input ?? 0,
-              output_tokens: part.tokens.output ?? 0,
-              total_tokens: part.tokens.total ?? 0,
-            },
-          }
+            // 构建 tool_calls 数组（OpenAI 格式）
+            const toolCallsOutput = g.toolCalls.map((tc) => ({
+              id: tc.toolCallId || `call_${Math.random().toString(36).substring(2, 12)}`,
+              type: "function",
+              function: {
+                name: tc.name,
+                arguments: tc.args || {},
+              },
+            }))
 
-          g.gen.update({
-            endTime: endTime.toISOString(),
-            usage: {
-              input: part.tokens.input ?? 0,
-              output: part.tokens.output ?? 0,
-              total: part.tokens.total ?? 0,
-            },
-            output: JSON.stringify(structuredOutput, null, 2),
-            metadata: {
-              spanKind: "llm",
-              model: g.gen.metadata?.model,
-              input: g.gen.metadata?.input,
-              output: structuredOutput,
-              tags: OBSERVATION_TAGS,
-              ...baseMetadata(),
-            },
-          })
+            // 构建 tool result 消息数组（role: "tool" 格式）
+            const toolResultsOutput = toolResults.map((tr) => ({
+              role: "tool",
+              tool_call_id: tr.toolCallId,
+              name: tr.name,
+              content: tr.output,
+            }))
+
+            // 构建结构化输出: { text, tool_calls, tool_results, usage }
+            const structuredOutput = {
+              text: fullText,
+              tool_calls: toolCallsOutput.length > 0 ? toolCallsOutput : undefined,
+              tool_results: toolResultsOutput.length > 0 ? toolResultsOutput : undefined,
+              usage: {
+                input_tokens: part.tokens.input ?? 0,
+                output_tokens: part.tokens.output ?? 0,
+                total_tokens: part.tokens.total ?? 0,
+              },
+            }
+
+// 构建完整的 input messages
+            // 使用 llmInputs 获取最新的 messages（包含 tool result），用 buildLLMInput 转换为标准格式
+            const cachedMessages = llmInputs.get(sessionId)
+            const metadataMessages = g.gen.metadata?.input?.messages || []
+            const system = systemPrompts.get(sessionId) || []
+            const tools = [...allToolDefs.values()]
+
+            // 使用 buildLLMInput 转换 cached messages 为标准格式
+            let fullInputMessages: any[] = []
+            if (cachedMessages && cachedMessages.length > 0) {
+              const built = buildLLMInput(cachedMessages, system, tools)
+              fullInputMessages = built.dict.messages || []
+            } else if (metadataMessages.length > 0) {
+              fullInputMessages = metadataMessages
+            }
+
+            // 如果没有 tool result 但 g.toolResults 有，手动追加
+            const hasToolResult = fullInputMessages.some((m: any) => m.role === "tool")
+            if (!hasToolResult && g.toolResults && g.toolResults.length > 0) {
+              const toolResultMessages = g.toolResults.map((tr: any) => ({
+                role: "tool",
+                content: [{ type: "tool-result", tool_call_id: tr.toolCallId, content: tr.output }],
+              }))
+              fullInputMessages = [...fullInputMessages, ...toolResultMessages]
+            }
+
+            // 更新 generation，包含完整的 input messages（带 tool result）
+            const updatedInput = {
+              messages: fullInputMessages,
+              tools: g.gen.metadata?.input?.tools || [],
+            }
+
+            g.gen.update({
+              endTime: endTime.toISOString(),
+              usage: {
+                input: part.tokens.input ?? 0,
+                output: part.tokens.output ?? 0,
+                total: part.tokens.total ?? 0,
+              },
+              output: JSON.stringify(structuredOutput, null, 2),
+              metadata: {
+                spanKind: "llm",
+                model: g.gen.metadata?.model,
+                input: updatedInput,
+                output: structuredOutput,
+                tags: OBSERVATION_TAGS,
+                ...baseMetadata(),
+                // 在 output.messages 中注入 tool call + result pair，使 LLM node 能显示完整交互
+                tool_exchanges: toolResultsOutput.length > 0 ? g.toolCalls.map((tc) => {
+                  const tr = g.toolResults?.find((r) => r.toolCallId === tc.toolCallId)
+                  return {
+                    call: {
+                      id: tc.toolCallId || `call_${Math.random().toString(36).substring(2, 12)}`,
+                      type: "function",
+                      function: { name: tc.name, arguments: tc.args },
+                    },
+                    result: tr ? {
+                      role: "tool",
+                      tool_call_id: tc.toolCallId,
+                      name: tc.name,
+                      content: tr.output,
+                    } : null,
+                  }
+                }) : undefined,
+              },
+            })
 
           // 缓存最终结构化输出，供 session.idle 读取
           g.finalOutput = structuredOutput
@@ -1360,10 +1504,12 @@ export const LangfusePlugin: Plugin = async (ctx) => {
           const fullText = reasonText ? `<think>\n${reasonText}</think>\n\n${textContent}` : textContent
 
           const toolCallsOutput = g.toolCalls.map((tc) => ({
-            type: "tool_use",
             id: tc.toolCallId || `call_${Math.random().toString(36).substring(2, 12)}`,
-            name: tc.name,
-            input: tc.args || {},
+            type: "function",
+            function: {
+              name: tc.name,
+              arguments: tc.args || {},
+            },
           }))
 
           const out = {
@@ -1421,6 +1567,7 @@ export const LangfusePlugin: Plugin = async (ctx) => {
         systemPrompts.delete(sessionId)
         llmTools.delete(sessionId)
         llmOutputs.delete(sessionId)
+        sessionMessageParts.delete(sessionId)
         currentTraceId = null
       }
 
