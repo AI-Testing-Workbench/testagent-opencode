@@ -831,13 +831,6 @@ export namespace Provider {
               const headers = init?.headers ? Object.fromEntries(new Headers(init.headers).entries()) : {}
               const body = init?.body ? (typeof init.body === "string" ? init.body : "[Binary Data]") : undefined
 
-              console.log("[testagent] 🌐 HTTP Request to test-llm gateway:", {
-                url,
-                method,
-                headers,
-                bodyPreview: body ? body.substring(0, 500) : undefined,
-              })
-
               const startTime = Date.now()
               const response = await fetch(input, init)
               const duration = Date.now() - startTime
@@ -851,14 +844,6 @@ export namespace Provider {
               } catch (e) {
                 responseBody = "[Could not read response body]"
               }
-
-              console.log("[testagent] 📥 HTTP Response from test-llm gateway:", {
-                status: response.status,
-                statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries()),
-                duration: `${duration}ms`,
-                bodyPreview: responseBody,
-              })
 
               return response
             },
