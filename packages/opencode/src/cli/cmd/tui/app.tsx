@@ -729,7 +729,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
           dialog.clear()
           return
         }
-        const url = `https://testhub-agent-trace.paasuat.cmbchina.cn/redirect?type=sessions&sessions=${sid}&user_id=${uid}`
+        const url = `https://xxxxxxx/redirect?type=sessions&sessions=${sid}&user_id=${uid}`
         open(url).catch(() => {})
         dialog.clear()
       },

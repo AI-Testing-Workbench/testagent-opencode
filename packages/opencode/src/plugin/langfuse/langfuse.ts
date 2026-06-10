@@ -16,7 +16,7 @@ import { User } from "@/testagent/user"
 import LangfuseClient from "langfuse"
 import { readFileSync, existsSync } from "fs"
 
-const LANGFUSE_BASE_URL = "https://testhub-agent-trace.paasuat.cmbchina.cn";
+const LANGFUSE_BASE_URL = "https://xxxxxxx";
 let baseMetadata: () => Record<string, string>
 
 
@@ -631,8 +631,8 @@ async function signup_user(user_id: string, user_name: string, langfuse_host: st
     body: JSON.stringify([
       {
         name: `${user_name}/${user_id}`,
-        email: `${user_id}@cmbchina.com`,
-        password: `${user_id}@cmbchina.com`,
+        email: `${user_id}@xx.com`,
+        password: `${user_id}@xx.com`,
       },
     ]),
   })
@@ -645,7 +645,7 @@ async function signup_user(user_id: string, user_name: string, langfuse_host: st
 }
 
 async function get_langfuse_login_token(langfuse_host: string, user_id: string): Promise<string> {
-  const password = `${user_id}@cmbchina.com`
+  const password = `${user_id}@xx.com`
   const email = password.toLowerCase()
 
   const csrfRes = await fetch(`${langfuse_host}/api/auth/csrf`)

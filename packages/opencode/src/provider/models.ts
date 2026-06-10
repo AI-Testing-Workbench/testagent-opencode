@@ -103,7 +103,7 @@ export namespace ModelsDev {
         id: "test-llm",
         name: "Test LLM",
         env: ["TEST_LLM_API_KEY"],
-        api: "http://test-llm.platform.cmbchina.cn/v1",
+        api: "http://xxxxx/v1",
         npm: "@ai-sdk/openai-compatible",
         models,
       }
@@ -119,7 +119,7 @@ export namespace ModelsDev {
 }
 
 // testagent_change start - fetch test-llm models from /models endpoint
-const TEST_LLM_BASE_URL = "http://test-llm.platform.cmbchina.cn/v1"
+const TEST_LLM_BASE_URL = "http://xxxxxx/v1"
 const TEST_LLM_API_KEY = "sk-WHMJMG6H36UGdq7FdVzODA"
 
 async function fetchTestLLMModels(): Promise<Record<string, ModelsDev.Model>> {
